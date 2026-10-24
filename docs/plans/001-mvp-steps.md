@@ -113,6 +113,6 @@ Done-when key (from 001-mvp.md):
   - Moves forward: D6, D7.
 
 - [ ] **14. Commands, README, done-when**
-  - Files: `CLAUDE.md` (Commands, including `backend/spike/sdk-spike.ts` as the manual SDK sanity check and `backend/spike/write-probe.ts`, to run after every SDK upgrade because the auto-approved memory folder is inside Claude Code; see decision 009), `README.md`, `docs/plans/001-mvp.md` (tick done-when items after a full manual run, including two instances side by side).
+  - Files: `PRODUCT.md` (update Capabilities and Constraints to match the shipped MVP), `CLAUDE.md` (Commands, including `backend/spike/sdk-spike.ts` as the manual SDK sanity check and `backend/spike/write-probe.ts`, to run after every SDK upgrade because the auto-approved memory folder is inside Claude Code; see decision 009), `README.md`, `docs/plans/001-mvp.md` (tick done-when items after a full manual run, including two instances side by side).
   - Verify: follow the README from a fresh clone.
   - Moves forward: D12 and the final check of all items.

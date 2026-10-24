@@ -14,3 +14,5 @@ build/
 # macOS
 .DS_Store
 ._*
+
+.claude/skills/impeccable/scripts/bin/
