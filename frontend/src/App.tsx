@@ -1,3 +1,4 @@
+import { MainScreen } from "./MainScreen.tsx";
 import { StartScreen } from "./StartScreen.tsx";
 import { useStore } from "./store.ts";
 
@@ -13,23 +14,12 @@ export function App() {
   if (!status) return unreachable ? <StartScreen unreachable /> : null;
 
   // Always true when pinned, so a pinned instance never shows the start screen.
-  if (status.project) return <MainPlaceholder name={status.project.name} />;
+  if (status.project) return <MainScreen projectName={status.project.name} />;
 
   return (
     <StartScreen
       configError={status.config === "invalid" ? status.configError : undefined}
       unreachable={unreachable}
     />
-  );
-}
-
-// Stands in for the office and chat until step 11.
-function MainPlaceholder({ name }: { name: string }) {
-  return (
-    <main className="flex min-h-screen items-center justify-center px-4">
-      <p className="text-text-muted">
-        <span className="font-mono text-text">{name}</span> is open. The office and chat come in step 11.
-      </p>
-    </main>
   );
 }

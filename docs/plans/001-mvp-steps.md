@@ -86,7 +86,7 @@ Done-when key (from 001-mvp.md):
   - Verify: `~/nope` shows the inline error and a real folder opens; repeat with a valid and an invalid `PROJECT_DIR`.
   - Moves forward: D2, D10, D11.
 
-- [ ] **11. Two-panel layout, WebSocket client, chat**
+- [x] **11. Two-panel layout, WebSocket client, chat**
   - Files: `frontend/src/ws.ts` (connect, reconnect, pass events to the store), `frontend/src/store.ts` (`applyEvent`), `frontend/src/chat/ChatPanel.tsx`, `MessageList.tsx`, `ChatInput.tsx` (Enter sends, Shift+Enter newline; panel about 480px wide). Queued messages show dimmed with a "Queued" mark and a cancel button; Esc in the input cancels the last queued one. A Stop button is visible only while the agent is busy (thinking, working or waiting).
   - Verify:
     - ask "what does this project do?" and watch it stream;

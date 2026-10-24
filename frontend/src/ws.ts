@@ -1,22 +1,31 @@
 // The WebSocket to the backend, through the Vite proxy at /ws on this page's own host.
-// For now it only takes the project status from the snapshot and reconnects after a
-// drop; applying live events comes later.
+// Every server event goes through applyEvent; a reconnect gets a fresh snapshot, which
+// replaces the whole state, so nothing missed during a drop lingers.
 
-import type { ServerEvent } from "@agent-office/shared";
-import { useStore } from "./store.ts";
+import type { ClientEvent, ServerEvent } from "@agent-office/shared";
+import { applyEvent, useStore } from "./store.ts";
 
 const RETRY_MS = 2000;
 
+let socket: WebSocket | null = null;
+
 export function connect(): void {
-  const socket = new WebSocket(`ws://${location.host}/ws`);
-  socket.addEventListener("open", () => useStore.setState({ connection: "open" }));
+  const current = new WebSocket(`ws://${location.host}/ws`);
+  socket = current;
+  current.addEventListener("open", () => useStore.setState({ connection: "open" }));
   // A failed attempt fires "close" too, so this one handler also drives the retries.
-  socket.addEventListener("close", () => {
+  current.addEventListener("close", () => {
     useStore.setState({ connection: "closed" });
     setTimeout(connect, RETRY_MS);
   });
-  socket.addEventListener("message", (message) => {
+  current.addEventListener("message", (message) => {
     const event = JSON.parse(message.data as string) as ServerEvent;
-    if (event.type === "snapshot") useStore.setState({ project: event.project });
+    useStore.setState((state) => applyEvent(state, event));
   });
+}
+
+// Dropped while disconnected: the UI disables sending then, and the server echoes
+// everything it accepts, so nothing is shown that the server didn't get.
+export function send(event: ClientEvent): void {
+  if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(event));
 }
