@@ -132,7 +132,7 @@ A "blob" is the simplest possible character: a `<div>` with `border-radius: 50%`
 | `thinking` | Agent is reasoning or writing text | Purple, faster breathing, "..." bubble |
 | `working` | Agent is editing a file or running a command | Green, bouncing, bubble with a short label (e.g. "editing App.tsx") |
 | `waiting` | Agent needs my approval or input | Amber, pulsing, "!" bubble. **Must be the most noticeable state.** |
-| `error` | Something failed | Red, shaking |
+| `error` | Something failed. Stays until my next message, which moves it to `thinking` | Red, shaking |
 
 Colors and animations can change; the states and "waiting is the most noticeable" can't.
 

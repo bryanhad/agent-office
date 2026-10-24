@@ -4,6 +4,7 @@ import { readFile, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import type { Project, ProjectStatus } from "@agent-office/shared";
+import { openSession } from "./session.ts";
 
 type Problem = "empty" | "relative" | "not_found" | "not_a_folder" | "unreadable";
 
@@ -105,6 +106,8 @@ async function use(open: OpenProject): Promise<void> {
   current = open;
   console.log(`opened project "${open.project.name}" at ${open.dir}`);
   await warnAboutAllowRules(open.dir);
+  // Stops the previous project's agent, if any, and starts a fresh conversation here.
+  await openSession(open.dir);
 }
 
 export function projectStatus(): ProjectStatus {

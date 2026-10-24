@@ -4,9 +4,11 @@
 import type { Server } from "node:http";
 import { WebSocketServer, type RawData, type WebSocket } from "ws";
 import { z } from "zod";
-import type { Agent, ClientEvent, ServerEvent, SnapshotEvent } from "@agent-office/shared";
+import type { ClientEvent, ServerEvent, SnapshotEvent } from "@agent-office/shared";
+import { agents, chatLog, onServerEvent } from "./chat.ts";
 import { isAllowedOrigin } from "./origin.ts";
 import { projectStatus } from "./project.ts";
+import { sendMessage } from "./session.ts";
 
 // Big enough for a long pasted message, small enough that nobody can make us buffer much.
 // ws closes the connection on a larger frame.
@@ -28,11 +30,9 @@ const clientEventSchema: z.ZodType<ClientEvent> = z.discriminatedUnion("type", [
 
 const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_MESSAGE_BYTES });
 
-// No session yet (step 7): the manager is always idle and the chat is empty.
-const agents: Agent[] = [{ id: "manager", role: "Manager", state: "idle" }];
-
+// The chat replay includes any unresolved permission_request, which is the pending one.
 function snapshot(): SnapshotEvent {
-  return { type: "snapshot", project: projectStatus(), agents, chat: [] };
+  return { type: "snapshot", project: projectStatus(), agents: agents(), chat: chatLog() };
 }
 
 function send(client: WebSocket, event: ServerEvent): void {
@@ -77,15 +77,18 @@ function parse(data: RawData, isBinary: boolean): ClientEvent | null {
 }
 
 function handle(event: ClientEvent): void {
-  // Validated but not acted on until the session exists (steps 7 and 8).
   if (event.type === "send_message") {
-    console.log(`received send_message (${event.text.length} chars); no session yet, ignoring`);
+    sendMessage(event.text);
   } else {
-    console.log(`received permission_response (${event.decision}); no session yet, ignoring`);
+    // Acted on once step 8 adds the pending-request map.
+    console.log(`received permission_response (${event.decision}); approval not wired yet, ignoring`);
   }
 }
 
 export function attachWebSocket(server: Server): void {
+  // Everything the session adds to the chat or changes in agent state goes to every window.
+  onServerEvent(broadcast);
+
   server.on("upgrade", (req, socket, head) => {
     const { pathname } = new URL(req.url ?? "/", "http://placeholder");
     if (pathname !== "/ws") {
