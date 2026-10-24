@@ -9,7 +9,7 @@ import { agents, chatLog, onServerEvent } from "./chat.ts";
 import { isAllowedOrigin } from "./origin.ts";
 import { projectStatus } from "./project.ts";
 import { respond } from "./permissions.ts";
-import { sendMessage } from "./session.ts";
+import { cancelMessage, sendMessage, stop } from "./session.ts";
 
 // Big enough for a long pasted message, small enough that nobody can make us buffer much.
 // ws closes the connection on a larger frame.
@@ -27,6 +27,11 @@ const clientEventSchema: z.ZodType<ClientEvent> = z.discriminatedUnion("type", [
     id: z.string().min(1).max(200),
     decision: z.enum(["approve", "deny"]),
   }),
+  z.strictObject({
+    type: z.literal("cancel_message"),
+    id: z.string().min(1).max(200),
+  }),
+  z.strictObject({ type: z.literal("stop") }),
 ]);
 
 const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_MESSAGE_BYTES });
@@ -78,10 +83,16 @@ function parse(data: RawData, isBinary: boolean): ClientEvent | null {
 }
 
 function handle(event: ClientEvent): void {
-  if (event.type === "send_message") {
-    sendMessage(event.text);
-  } else {
-    respond(event.id, event.decision);
+  switch (event.type) {
+    case "send_message":
+      return sendMessage(event.text);
+    case "permission_response":
+      return respond(event.id, event.decision);
+    case "cancel_message":
+      return cancelMessage(event.id);
+    case "stop":
+      // stop() catches its own errors.
+      void stop();
   }
 }
 

@@ -40,11 +40,31 @@ export type ProjectStatus =
 // ---------- Server → browser (WebSocket) ----------
 
 // Echo of a message I sent, so the chat log (and the snapshot) has both sides.
-// Source: the client's `user_message`, not the SDK.
+// Source: the client's `send_message`, not the SDK.
+//
+// A message sent while the agent is busy (thinking, working, waiting) is held in a
+// backend queue and echoed as "queued"; otherwise it goes straight to the agent as
+// "delivered". Queued messages always sit at the end of the chat, after everything
+// else, in send order: the agent only sees them once the current turn is over, and the
+// turn's own text keeps streaming above them. When one is delivered or cancelled, a
+// `message_status` moves it out of that tail to the end of the timeline.
 export interface UserMessageEvent {
   type: "user_message";
   id: string;
   text: string;
+  // "cancelled": it never reached the agent. In the snapshot this is the latest status.
+  status: "queued" | "delivered" | "cancelled";
+}
+
+// A queued message left the queue: set the item's `status`, and move it from the queued
+// tail to the end of the timeline (after whatever is there now). "delivered" happens when
+// the turn ends and it is next in line; "cancelled" when I cancel it or press Stop.
+// Not stored in the chat log: the `user_message` there carries the new status instead.
+// Source: the backend queue, not the SDK.
+export interface MessageStatusEvent {
+  type: "message_status";
+  id: string;
+  status: "delivered" | "cancelled";
 }
 
 // A piece of streamed assistant text. Append `delta` to the item with this `id`.
@@ -94,7 +114,8 @@ export interface PermissionRequestEvent {
 export interface PermissionResolvedEvent {
   type: "permission_resolved";
   id: string;
-  // "cancelled": the query was aborted while waiting (e.g. another project was opened).
+  // "cancelled": I pressed Stop, or the query was aborted while waiting (e.g. another
+  // project was opened).
   decision: "approved" | "denied" | "timed_out" | "cancelled";
 }
 
@@ -112,10 +133,20 @@ export interface AgentStateEvent {
 // is `result`), or the `for await` over `query()` throwing. The synthetic `assistant`
 // message (`model: "<synthetic>"`, `is_api_error_message: true`) carries the same text
 // just before that result, so it is dropped rather than shown as a reply or a second error.
+// Not for a turn I stopped: its error result becomes a `stopped` item instead.
 export interface ErrorEvent {
   type: "error";
   id: string;
   message: string;
+}
+
+// I pressed Stop and the turn ended. A neutral line in the chat, never an error.
+// Source: the interrupted turn's `result`, which comes back as `is_error: true`,
+// `subtype: "error_during_execution"`, `terminal_reason: "aborted_streaming"` or
+// "aborted_tools" (finding 23). The backend shows this instead of that error.
+export interface StoppedEvent {
+  type: "stopped";
+  id: string;
 }
 
 // Events that make up the chat. The backend keeps them in memory, in order, and
@@ -126,11 +157,13 @@ export type ChatEvent =
   | ToolUseEvent
   | PermissionRequestEvent
   | PermissionResolvedEvent
-  | ErrorEvent;
+  | ErrorEvent
+  | StoppedEvent;
 
 // Sent on every WebSocket connect, so a reload restores everything.
 // A pending request is a `permission_request` in `chat` with no matching
-// `permission_resolved`; the card reappears from the replay.
+// `permission_resolved`; the card reappears from the replay. Queued messages are the
+// `user_message` items with status "queued", at the end of `chat`.
 // Source: backend state, not the SDK.
 export interface SnapshotEvent {
   type: "snapshot";
@@ -139,7 +172,7 @@ export interface SnapshotEvent {
   chat: ChatEvent[];
 }
 
-export type ServerEvent = SnapshotEvent | AgentStateEvent | ChatEvent;
+export type ServerEvent = SnapshotEvent | AgentStateEvent | MessageStatusEvent | ChatEvent;
 
 // ---------- Browser → server (WebSocket) ----------
 //
@@ -147,8 +180,8 @@ export type ServerEvent = SnapshotEvent | AgentStateEvent | ChatEvent;
 // incoming WebSocket message against its own zod schema (in the backend, not here) and
 // drop anything that doesn't match, with a log line. This socket can approve shell commands.
 
-// A chat message for the agent. Becomes an SDKUserMessage pushed into the query.
-// The server echoes it back as `user_message`.
+// A chat message for the agent. Becomes an SDKUserMessage pushed into the query, now or,
+// if the agent is busy, when the turn ends. The server echoes it back as `user_message`.
 export interface SendMessageEvent {
   type: "send_message";
   text: string;
@@ -161,7 +194,20 @@ export interface PermissionResponseEvent {
   decision: "approve" | "deny";
 }
 
-export type ClientEvent = SendMessageEvent | PermissionResponseEvent;
+// Cancel a queued message, by its `user_message` id. One already delivered or cancelled,
+// or an unknown id, is ignored (two windows can both cancel).
+export interface CancelMessageEvent {
+  type: "cancel_message";
+  id: string;
+}
+
+// Stop everything: interrupt the current turn, cancel every queued message and every
+// pending permission request. The agent ends at `idle`. Ignored while not busy.
+export interface StopEvent {
+  type: "stop";
+}
+
+export type ClientEvent = SendMessageEvent | PermissionResponseEvent | CancelMessageEvent | StopEvent;
 
 // ---------- HTTP ----------
 

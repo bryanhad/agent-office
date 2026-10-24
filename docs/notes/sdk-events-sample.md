@@ -35,6 +35,12 @@ Trimming: `…` marks removed fields or array items. The target folder is shown 
     - The `file_path` input can be `~/…` or relative, not always absolute.
     - `backend/spike/write-probe.ts` repeats the check; run it after every SDK upgrade.
 22. **Parallel tool calls ask one at a time.** In step 8, two parallel `Write` calls in one assistant message produced two `tool_use` lines at once, but `canUseTool` for the second came only after the first was answered. `permissions.ts` still allows several pending requests and stays `waiting` until all are settled, in case a version asks concurrently.
+23. **`interrupt()` ends the turn with an error result.** Probed in step 8b (a throwaway script, same options as the app), one streaming-input query, three turns:
+    - `interrupt()` resolves at once to `{"still_queued": []}` (the receipt lists messages still queued in the SDK; ours never are, they wait in the backend).
+    - While text streams: a complete `assistant` message with the text so far (it can run past the last delta we got), a `user` message `[Request interrupted by user]`, then a `result` with `is_error: true`, `subtype: "error_during_execution"`, `terminal_reason: "aborted_streaming"`, `errors: ["[ede_diagnostic] result_type=user …"]`. Shown as an error, that would be wrong, so the backend turns it into a `stopped` item and `idle`.
+    - While `canUseTool` is pending: its `signal` aborts first, then a `user` `tool_result` with `is_error: true` and Claude Code's own rejection text, a `user` `[Request interrupted by user for tool use]`, and the same kind of `result` with `terminal_reason: "aborted_tools"` and the call in `permission_denials`.
+    - About 0.1 s from `interrupt()` to the `result`. The `for await` loop doesn't throw; the query keeps running.
+    - The next message works and remembers: "What was the first thing I asked you?" answered with the interrupted counting request.
 
 ## Samples
 
@@ -313,6 +319,25 @@ After the deny, the same message has `"permission_denials": [{ "tool_name": "Wri
   "…": "…"
 }
 ```
+
+### `result` after `interrupt()` (while text streams)
+
+```json
+{
+  "type": "result",
+  "subtype": "error_during_execution",
+  "is_error": true,
+  "errors": ["[ede_diagnostic] result_type=user last_content_type=n/a stop_reason=null"],
+  "stop_reason": null,
+  "terminal_reason": "aborted_streaming",
+  "num_turns": 2,
+  "permission_denials": [],
+  "session_id": "f13ae9dc-…",
+  "…": "…"
+}
+```
+
+With a pending permission, the same but `"stop_reason": "tool_use"`, `"terminal_reason": "aborted_tools"`, and `permission_denials: [{ "tool_name": "Write", "tool_use_id": "toolu_01…", "tool_input": { … } }]`.
 
 ### What `query()` throws (after the input ends)
 

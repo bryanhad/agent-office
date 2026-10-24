@@ -62,7 +62,7 @@ Done-when key (from 001-mvp.md):
   - Verify (wscat): ask for a file change → `permission_request` + `waiting`; approve → file changes; deny → agent says so; reconnect while pending → snapshot has it and approve works; `PERMISSION_TIMEOUT_MS=10000` → auto-deny.
   - Moves forward: D4, D5, D9 (backend).
 
-- [ ] **8b. Message queue and Stop (backend)**
+- [x] **8b. Message queue and Stop (backend)**
   - Files:
     - `shared/events.ts`: decide the event shapes here. At least a queued state for a `user_message` that a reconnect can replay; a "delivered" and a "cancelled" change; client events to cancel one queued message and to stop. Plus the zod schemas in `ws.ts`.
     - `backend/src/session.ts` or a small module next to it: the backend queue. Messages sent while the agent is busy stay there, not in the SDK input. The next one is pushed into the query when the turn goes idle.

@@ -2,11 +2,14 @@
 // Every change goes through here and on to the listeners, so ws.ts can broadcast it and
 // build the snapshot without the session knowing about sockets.
 
-import type { Agent, AgentState, ChatEvent, ServerEvent } from "@agent-office/shared";
+import type { Agent, AgentState, ChatEvent, MessageStatusEvent, ServerEvent, UserMessageEvent } from "@agent-office/shared";
 
 const MANAGER = { id: "manager", role: "Manager" } as const;
 
 let chat: ChatEvent[] = [];
+// Queued user messages, oldest first. Kept apart from `chat` so the current turn's text
+// keeps merging into one item per block; the snapshot puts them after it.
+let queued: UserMessageEvent[] = [];
 let manager: Agent = { ...MANAGER, state: "idle" };
 const listeners = new Set<(event: ServerEvent) => void>();
 
@@ -22,12 +25,34 @@ function publish(event: ServerEvent): void {
 // so a reload replays whole paragraphs instead of hundreds of fragments.
 export function addChat(event: ChatEvent): void {
   const last = chat.at(-1);
-  if (event.type === "assistant_text" && last?.type === "assistant_text" && last.id === event.id) {
+  if (event.type === "user_message" && event.status === "queued") {
+    queued.push(event);
+  } else if (event.type === "assistant_text" && last?.type === "assistant_text" && last.id === event.id) {
     chat[chat.length - 1] = { ...last, delta: last.delta + event.delta };
   } else {
     chat.push(event);
   }
   publish(event);
+}
+
+// A queued message was delivered or cancelled: it moves from the queue to the end of the
+// timeline with its new status. Returns it, or undefined if it wasn't queued.
+export function setMessageStatus(id: string, status: MessageStatusEvent["status"]): UserMessageEvent | undefined {
+  const index = queued.findIndex((message) => message.id === id);
+  if (index === -1) return undefined;
+  const [message] = queued.splice(index, 1);
+  const updated = { ...message, status };
+  chat.push(updated);
+  publish({ type: "message_status", id, status });
+  return updated;
+}
+
+export function queuedMessages(): readonly UserMessageEvent[] {
+  return queued;
+}
+
+export function agentState(): AgentState {
+  return manager.state;
 }
 
 // Publishes only real changes, so repeated "thinking" signals don't spam the socket.
@@ -38,7 +63,7 @@ export function setAgentState(state: AgentState, activity?: string): void {
 }
 
 export function chatLog(): ChatEvent[] {
-  return chat;
+  return [...chat, ...queued];
 }
 
 export function agents(): Agent[] {
@@ -48,5 +73,6 @@ export function agents(): Agent[] {
 // A new project starts a new conversation. Publishes nothing: the caller sends a snapshot.
 export function resetChat(): void {
   chat = [];
+  queued = [];
   manager = { ...MANAGER, state: "idle" };
 }
