@@ -136,10 +136,15 @@ export interface SnapshotEvent {
 export type ServerEvent = SnapshotEvent | AgentStateEvent | ChatEvent;
 
 // ---------- Browser → server (WebSocket) ----------
+//
+// These are types only and prove nothing at runtime. The backend must validate every
+// incoming WebSocket message against its own zod schema (in the backend, not here) and
+// drop anything that doesn't match, with a log line. This socket can approve shell commands.
 
 // A chat message for the agent. Becomes an SDKUserMessage pushed into the query.
+// The server echoes it back as `user_message`.
 export interface SendMessageEvent {
-  type: "user_message";
+  type: "send_message";
   text: string;
 }
 

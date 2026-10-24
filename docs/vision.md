@@ -204,11 +204,11 @@ The `src` file names are a suggested starting split, not a rule.
 1. Chat panel extras:
    - Subscription usage bar from `rate_limit_event` (`five_hour` / `seven_day` utilization).
    - Model dropdown, filled from `query.supportedModels()` and switched with `query.setModel()` (possible because the session uses streaming input). Like `MODEL`, it only controls the main model, not Claude Code's small background model.
-2. Multiple agents as subagents, one blob each, `@` mentions with autocomplete.
+2. Permission card previews: show the content for `Write` and the diff for `Edit`, so I can judge a change before approving it.
+3. Multiple agents as subagents, one blob each, `@` mentions with autocomplete.
    - Per-agent models: each role in `backend/src/roles/` gets a `model` field (alias, full ID, or `'inherit'` = the main model).
    - After that, a settings UI to edit the per-agent models.
-3. Dev server control and the floating preview iframe.
-4. 3D office with React Three Fiber: primitives first (box room, desks, capsule agents), camera with orbit, pan and zoom.
-5. Better project selection: folder browser, recent projects, and the `agent-office [dir]` CLI start (see [Project directory selection](#6-project-directory-selection)).
-6. Nicer 3D models and animations, session history, sounds, polish.
-7. Diff preview in permission cards.
+4. Dev server control and the floating preview iframe.
+5. 3D office with React Three Fiber: primitives first (box room, desks, capsule agents), camera with orbit, pan and zoom.
+6. Better project selection: folder browser, recent projects, and the `agent-office [dir]` CLI start (see [Project directory selection](#6-project-directory-selection)).
+7. Nicer 3D models and animations, session history, sounds, polish.
