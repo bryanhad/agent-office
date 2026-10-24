@@ -1,4 +1,5 @@
-// Must stay the first import: it cleans the environment before anything else loads.
+// Must stay the first import, so don't let an import sorter move it. It strips the
+// credential variables before any other module (including the Agent SDK) loads.
 import { config } from "./env.ts";
 import express from "express";
 import type { ApiError, OpenProjectRequest, ProjectResponse } from "@agent-office/shared";
