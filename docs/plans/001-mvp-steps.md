@@ -34,9 +34,9 @@ Done-when key (from 001-mvp.md):
   - Verify (with `npm start`, because `npm run dev` watches and keeps waiting after an exit): `CLAUDE_CODE_OAUTH_TOKEN= npm start -w backend` exits with a clear message; with the token `curl 127.0.0.1:3001/api/health` answers and `lsof -nP -iTCP:3001 -sTCP:LISTEN` shows `127.0.0.1` only; `ANTHROPIC_API_KEY=x npm start -w backend` warns without the value; `PORT=3002 MODEL=sonnet npm start -w backend` listens on 3002 and logs the model.
   - Moves forward: D1, D12.
 
-- [ ] **4. Shared event types**
-  - Files: `shared/package.json`, `shared/events.ts` (types only: `AgentState`; server events `snapshot`, `user_message`, `assistant_text`, `tool_use`, `permission_request`, `permission_resolved`, `agent_state`, `result`, `error`; client events `user_message`, `permission_response`; `ProjectStatus` with the three config cases none / pinned / invalid; HTTP request and response types).
-  - Verify: `npx tsc --noEmit -p backend` passes.
+- [x] **4. Shared event types**
+  - Files: `shared/package.json` (`@agent-office/shared`, types only), `shared/tsconfig.json`, `shared/events.ts` (`AgentState`, `Agent`, `Project`; server events `snapshot`, `user_message`, `assistant_text`, `tool_use`, `permission_request`, `permission_resolved`, `agent_state`, `error`, with `ChatEvent` as the replayable subset; client events `user_message`, `permission_response`; `ProjectStatus` with the three config cases none / pinned / invalid; HTTP `OpenProjectRequest`, `ProjectResponse`, `ApiError`), `backend/package.json` (depends on the shared workspace). No `result` event: a finished turn is `agent_state` idle, a failed one is `error`. No separate pending field in the snapshot: an unresolved `permission_request` in the replayed chat is the pending request.
+  - Verify: `npx tsc -p shared` and `npx tsc --noEmit -p backend` pass.
   - Moves forward: groundwork for all.
 
 - [ ] **5. Project endpoint and `PROJECT_DIR`**

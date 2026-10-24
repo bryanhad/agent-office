@@ -1,0 +1,10 @@
+{
+  "name": "@agent-office/shared",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./events.ts"
+    }
+  }
+}
