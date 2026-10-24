@@ -104,11 +104,13 @@ One definition, used by the office, the compact strip (§5) and later the 3D ren
 
 ## 5. Widths
 
+**Full window is the primary layout.** Agent Office is meant to be used full screen as my main workspace (PRODUCT.md, Operating Context). Design, review and screenshots start at full width (e.g. 1440–1728px on the MacBook, wider on an external display); the narrower layouts are supported fallbacks that must still work, not the main case.
+
 | Window width | Layout |
 | --- | --- |
-| ≥ 1200px (full window) | Office \| chat at **480px** fixed. Blob ~150px. |
-| 760–1199px (wide side window) | Office \| chat at **400–440px**. Office min 320px; the blob scales down (~110px); the label stays readable at 13px. |
-| < 760px (narrow side window) | The office collapses to a **compact strip** at the top of the chat column (~72px tall). It holds a mini blob (40px) with its glyph bubble, "Manager", the state label, and the project name on the right in muted mono. The chat fills the rest. |
+| ≥ 1200px (full window, **primary**) | Office \| chat at **480px** fixed. Blob ~150px. The office takes all remaining width and stays centered, however wide the window. |
+| 760–1199px (fallback: half-screen split or side window) | Office \| chat at **400–440px**. Office min 320px; the blob scales down (~110px); the label stays readable at 13px. |
+| < 760px (fallback: narrow side window) | The office collapses to a **compact strip** at the top of the chat column (~72px tall). It holds a mini blob (40px) with its glyph bubble, "Manager", the state label, and the project name on the right in muted mono. The chat fills the rest. |
 
 - The compact strip is the office at small scale, not a second state system: same tokens, glyphs, labels and eyes. In waiting, the strip gets the `waiting.soft` background and the steady amber ring, so it reads from the corner of the eye.
 - It reads only `project` and `agents` from the store, like the office. When the 3D office arrives, the strip can stay 2D.

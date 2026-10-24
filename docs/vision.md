@@ -8,9 +8,9 @@ A **local web app** that wraps Claude Code in a visual "office".
 
 - **Left panel (office view):** the current project shown as an office. The project name is on the wall. Each agent is a character at a desk, with a role label. Characters animate according to what their agent is doing.
 - **Right panel (chat):** I chat with the **manager** agent by default, or address a specific agent with `@name` (autocomplete, like slash commands in Claude Code).
-- **Live preview (later):** the frontend agent can open a floating, draggable window with the project's dev server running inside an iframe, so I can try features and layouts without leaving the app.
+- **Agent browser and preview (later):** "open up the FE" opens a real browser that the agent drives and I can use too, so I can try features and layouts without leaving my workspace. See [§12](#12-long-term-goal-replace-my-claude-code--terminal-browser-workflow) and [decision 012](decisions/012-agent-browser-headed-playwright.md).
 
-It runs only on my machine (macOS). It is a personal tool, not a product.
+It runs only on my machine (macOS). It is a personal tool, not a product. It is meant to become my main workspace, used **full window**; narrow widths are a supported fallback.
 
 ## 2. Layout
 
@@ -22,8 +22,8 @@ It runs only on my machine (macOS). It is a personal tool, not a product.
 |    desk          desk         desk          |  manager: on it...   |
 |    idle        typing...     waiting!       |  [Approve] [Deny]    |
 |                                             |                      |
-|        +-------- floating preview --------+ |                      |
-|        |  localhost:5173 (iframe)         | |  > @fro|             |
+|        +------- preview window -----------+ |                      |
+|        |  localhost:5173 (agent browser)  | |  > @fro|             |
 |        +----------------------------------+ |    @frontend         |
 +---------------------------------------------+----------------------+
 ```
@@ -63,7 +63,7 @@ This is what lets the MVP renderer (CSS blobs) be replaced later by a 3D rendere
 | Office view (MVP) | Plain DOM + CSS "blobs" (see [Design](#8-design)) |
 | Office view (later) | React Three Fiber + drei, 3D with orbit, pan and zoom |
 | Chat `@` mentions | Tiptap Mention extension (later; plain textarea for MVP) |
-| Floating preview | `<iframe>` inside react-rnd (later) |
+| Agent browser | Playwright driving a headed Chromium with its own profile (later, [decision 012](decisions/012-agent-browser-headed-playwright.md)) |
 | Backend | Node + TypeScript, Express with `ws` on the same HTTP server (see [decision 007](decisions/007-express-over-hono.md)) |
 | Agent engine | `@anthropic-ai/claude-agent-sdk` (TypeScript) |
 
@@ -220,10 +220,55 @@ The `src` file names are a suggested starting split, not a rule.
    - Subscription usage bar from `rate_limit_event` (`five_hour` / `seven_day` utilization).
    - Model dropdown, filled from `query.supportedModels()` and switched with `query.setModel()` (possible because the session uses streaming input). Like `MODEL`, it only controls the main model, not Claude Code's small background model.
 2. Permission card previews: show the content for `Write` and the diff for `Edit`, so I can judge a change before approving it.
-3. Multiple agents as subagents, one blob each, `@` mentions with autocomplete.
+3. Multiple agents as subagents, one blob each, `@` mentions with autocomplete. The office vision for this phase is in [§12](#office-vision).
    - Per-agent models: each role in `backend/src/roles/` gets a `model` field (alias, full ID, or `'inherit'` = the main model).
    - After that, a settings UI to edit the per-agent models.
-4. Dev server control and the floating preview iframe.
+4. Parity with my current workflow ([§12](#12-long-term-goal-replace-my-claude-code--terminal-browser-workflow)):
+   - the agent browser, phase C first ([decision 012](decisions/012-agent-browser-headed-playwright.md)), then the preview window inside the office;
+   - background processes (dev servers): start, stop and watch them from the UI;
+   - MCP servers and extra tools, each with a permission policy.
 5. 3D office with React Three Fiber: primitives first (box room, desks, capsule agents), camera with orbit, pan and zoom.
 6. Better project selection: folder browser, recent projects, and the `agent-office [dir]` CLI start (see [Project directory selection](#6-project-directory-selection)).
 7. Nicer 3D models and animations, browsing past sessions, sounds, polish.
+
+## 12. Long-term goal: replace my Claude Code + terminal browser workflow
+
+Agent Office should become my **main workspace**, used full window, and replace my current setup with **no downgrade**. Today that setup is Ghostty full screen: Claude Code on the left, a terminal browser on the right. Claude Code:
+
+- drives the terminal browser for me: navigating, clicking, testing features for my BA team, and logging into the FE with custom cookie payloads;
+- runs my BE and FE as background processes.
+
+None of this is MVP. The MVP scope in [plans/001-mvp.md](plans/001-mvp.md) is unchanged.
+
+### Parity items (roadmap)
+
+1. **Agent browser:** a browser the agent can drive and I can see and use: navigation, clicks, forms, custom cookies. See [Agent browser](#agent-browser) below.
+2. **Background processes:** starting, stopping and watching background processes (dev servers), visible in the UI.
+3. **MCP servers and extra tools** beyond the current six (`Read`, `Glob`, `Grep`, `Edit`, `Write`, `Bash`), each with a permission policy. Never via `allowedTools`; tools are added through `tools` and gated by `canUseTool`.
+4. **Subagents:** the multi-agent phase (§9, §11).
+
+### Agent browser
+
+Decided in [decision 012](decisions/012-agent-browser-headed-playwright.md); a summary:
+
+- **Token cost depends on how the agent reads the page, not where the page is displayed.** Text snapshots with element refs are cheap; screenshots are expensive. The agent gets a snapshot-based interface like agent-browser, so token use stays close to my current setup.
+- **Start with a headed Chromium driven by Playwright (option C).** The backend runs Playwright with its own Chromium, never my personal browser. It uses a persistent profile under `~/.agent-office/`, so logins survive restarts, and sets custom cookies through the browser context. I can use the same window myself, DevTools included.
+- **Agent tools:** open URL, text snapshot, click, type, set cookies, roughly matching agent-browser so its habits carry over.
+- **Permission policy:** deliberate and explicit, e.g. localhost without asking, everything else asks.
+- **The display is swappable**, like the office renderer: once control, cookies and the permission policy work, the browser moves inside the office, either streamed from the backend (option A) or embedded in an Electron app (option D).
+
+### Preview window
+
+- "Open up the FE" opens the agent's browser.
+- **Phase C:** it's the native Chromium window, and while it's open the office shows a **browser bubble**.
+- **Once the display is inside the office (A or D):**
+  - a resizable window styled like a Mac browser app, with close, minimize and expand controls;
+  - minimize turns it into a **half-circle bubble with a browser icon** at the right edge of the office panel, and clicking the bubble restores the window;
+  - no animation at first.
+
+### Office vision
+
+- Several agents, each animated while working.
+- Visible interaction when agents delegate or communicate: walking to another desk, speech bubbles. A funny, Sims-like office.
+- Delegation can be drawn from SDK events alone: a subagent's messages carry `parent_tool_use_id`, the id of the call that started them, so the UI knows who delegated to whom.
+- The renderer rule stays: the office reads store state, and the event → state logic for delegation lives outside it.
