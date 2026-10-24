@@ -1,133 +1,98 @@
-// Assistant text as minimal markdown (brief §6): paragraphs, lists, inline code, code
-// blocks and http(s) links. Everything else stays plain text. It builds React elements
-// only, never HTML strings, so HTML in the text (which can come from files the agent
-// read) shows as literal text: React escapes it.
+// Assistant text as markdown (brief §6): GFM (bold, tables, strikethrough, lists, code)
+// via react-markdown. A library now because GFM is past the point where a hand-rolled
+// parser stays small; step 11's first version missed **bold**.
 //
-// Hand-rolled rather than a markdown library: the set is tiny, and a library would need
-// configuring down to it (and away from raw HTML) anyway.
+// Never raw HTML: agent output can contain content from files the agent read. There is
+// no rehype-raw, and htmlAsText turns every HTML node into plain text, so `<b>hi</b>`
+// shows as those characters instead of rendering or silently disappearing.
 
-import type { ReactNode } from "react";
+import type { ComponentProps } from "react";
+import ReactMarkdown, { type Components } from "react-markdown";
+import remarkBreaks from "remark-breaks";
+import remarkGfm from "remark-gfm";
 
-type Block =
-  | { kind: "code"; text: string }
-  | { kind: "list"; ordered: boolean; start: number; items: string[] }
-  | { kind: "paragraph"; text: string };
-
-const FENCE = /^\s*```/;
-const LIST_ITEM = /^\s*(?:([-*+])|(\d+)[.)])\s+(.*)$/;
-
-function parseBlocks(text: string): Block[] {
-  const lines = text.split("\n");
-  const blocks: Block[] = [];
-  let i = 0;
-
-  while (i < lines.length) {
-    const line = lines[i];
-
-    if (FENCE.test(line)) {
-      // An unclosed fence (mid-stream) runs to the end, so the block doesn't flip
-      // between code and paragraphs while it streams.
-      const body: string[] = [];
-      i++;
-      while (i < lines.length && !FENCE.test(lines[i])) body.push(lines[i++]);
-      i++;
-      blocks.push({ kind: "code", text: body.join("\n") });
-      continue;
-    }
-
-    if (line.trim() === "") {
-      i++;
-      continue;
-    }
-
-    const item = LIST_ITEM.exec(line);
-    if (item) {
-      const ordered = item[2] !== undefined;
-      const list: Block = { kind: "list", ordered, start: ordered ? Number(item[2]) : 1, items: [] };
-      while (i < lines.length) {
-        const next = LIST_ITEM.exec(lines[i]);
-        if (next && (next[2] !== undefined) === ordered) list.items.push(next[3]);
-        // An indented line continues the item above it.
-        else if (/^\s+\S/.test(lines[i]) && list.items.length > 0) list.items[list.items.length - 1] += `\n${lines[i].trim()}`;
-        else break;
-        i++;
-      }
-      blocks.push(list);
-      continue;
-    }
-
-    const paragraph: string[] = [];
-    while (i < lines.length && lines[i].trim() !== "" && !FENCE.test(lines[i]) && !LIST_ITEM.test(lines[i])) {
-      paragraph.push(lines[i++]);
-    }
-    blocks.push({ kind: "paragraph", text: paragraph.join("\n") });
-  }
-
-  return blocks;
+interface MdNode {
+  type: string;
+  value?: string;
+  children?: MdNode[];
 }
 
-// `code`, or [text](http(s) url). A link with any other scheme stays plain text.
-const INLINE = /`([^`\n]+)`|\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g;
+// Block containers: HTML directly inside one is a block of its own, so it becomes a
+// paragraph of text; anywhere else it's inline and becomes just text.
+const BLOCK_PARENTS = new Set(["root", "blockquote", "listItem"]);
 
-function inline(text: string): ReactNode[] {
-  const parts: ReactNode[] = [];
-  let last = 0;
-  for (const match of text.matchAll(INLINE)) {
-    if (match.index > last) parts.push(text.slice(last, match.index));
-    if (match[1] !== undefined) {
-      parts.push(
-        <code key={match.index} className="rounded-[4px] bg-surface-sunken px-1 py-px font-mono text-[0.9em]">
-          {match[1]}
-        </code>,
-      );
-    } else {
-      parts.push(
-        <a key={match.index} href={match[3]} target="_blank" rel="noopener noreferrer" className="underline">
-          {match[2]}
-        </a>,
-      );
-    }
-    last = match.index + match[0].length;
-  }
-  if (last < text.length) parts.push(text.slice(last));
-  return parts;
+function htmlAsText() {
+  return (tree: MdNode) => {
+    const walk = (node: MdNode) => {
+      node.children = node.children?.map((child) => {
+        if (child.type !== "html") {
+          walk(child);
+          return child;
+        }
+        const text = { type: "text", value: child.value };
+        return BLOCK_PARENTS.has(node.type) ? { type: "paragraph", children: [text] } : text;
+      });
+    };
+    walk(tree);
+  };
 }
+
+// Headings stay at body size: a chat reply isn't a document.
+const heading = (props: ComponentProps<"h1">) => <p className="font-semibold">{props.children}</p>;
+
+const components: Components = {
+  h1: heading,
+  h2: heading,
+  h3: heading,
+  h4: heading,
+  h5: heading,
+  h6: heading,
+  // The default urlTransform blanks unsafe schemes such as javascript:; those show as
+  // plain text rather than as a link to nowhere.
+  a: ({ href, children }) =>
+    !href ? (
+      <>{children}</>
+    ) : (
+      <a href={href} target="_blank" rel="noopener noreferrer" className="underline">
+        {children}
+      </a>
+    ),
+  ul: ({ children }) => <ul className="flex list-disc flex-col gap-1 pl-6">{children}</ul>,
+  ol: ({ children, start }) => (
+    <ol start={start} className="flex list-decimal flex-col gap-1 pl-6">
+      {children}
+    </ol>
+  ),
+  // Inline code; inside a <pre> the block styles below take over.
+  code: ({ children }) => <code className="rounded-[4px] bg-surface-sunken px-1 py-px font-mono text-[0.9em]">{children}</code>,
+  pre: ({ children }) => (
+    <pre className="overflow-x-auto rounded-row bg-surface-sunken px-3 py-2 font-mono text-label [&>code]:bg-transparent [&>code]:p-0 [&>code]:text-[1em]">
+      {children}
+    </pre>
+  ),
+  table: ({ children }) => (
+    <div className="overflow-x-auto">
+      <table className="border-collapse text-label">{children}</table>
+    </div>
+  ),
+  th: ({ children, style }) => (
+    <th style={style} className="border border-line bg-surface-sunken px-2 py-1 text-left font-semibold">
+      {children}
+    </th>
+  ),
+  td: ({ children, style }) => (
+    <td style={style} className="border border-line px-2 py-1">
+      {children}
+    </td>
+  ),
+};
 
 export function Markdown({ text }: { text: string }) {
   return (
-    <div className="flex flex-col gap-3 break-words">
-      {parseBlocks(text).map((block, index) => {
-        switch (block.kind) {
-          case "code":
-            return (
-              <pre key={index} className="overflow-x-auto rounded-row bg-surface-sunken px-3 py-2 font-mono text-label">
-                <code>{block.text}</code>
-              </pre>
-            );
-          case "list": {
-            const items = block.items.map((item, n) => (
-              <li key={n} className="whitespace-pre-wrap">
-                {inline(item)}
-              </li>
-            ));
-            return block.ordered ? (
-              <ol key={index} start={block.start} className="flex list-decimal flex-col gap-1 pl-6">
-                {items}
-              </ol>
-            ) : (
-              <ul key={index} className="flex list-disc flex-col gap-1 pl-6">
-                {items}
-              </ul>
-            );
-          }
-          case "paragraph":
-            return (
-              <p key={index} className="whitespace-pre-wrap">
-                {inline(block.text)}
-              </p>
-            );
-        }
-      })}
+    <div className="flex flex-col gap-3 break-words [&_li>p]:inline">
+      <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks, htmlAsText]} components={components}>
+        {text}
+      </ReactMarkdown>
     </div>
   );
 }
