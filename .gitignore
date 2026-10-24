@@ -16,3 +16,4 @@ build/
 ._*
 
 .claude/skills/impeccable/scripts/bin/
+.impeccable/mocks
