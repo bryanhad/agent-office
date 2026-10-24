@@ -6,7 +6,7 @@ import { WebSocketServer, type RawData, type WebSocket } from "ws";
 import { z } from "zod";
 import type { ClientEvent, ServerEvent, SnapshotEvent } from "@agent-office/shared";
 import { agents, chatLog, onServerEvent } from "./chat.ts";
-import { isAllowedOrigin } from "./origin.ts";
+import { isAllowedHost, isAllowedOrigin } from "./origin.ts";
 import { projectStatus } from "./project.ts";
 import { respond } from "./permissions.ts";
 import { cancelMessage, sendMessage, stop } from "./session.ts";
@@ -104,6 +104,11 @@ export function attachWebSocket(server: Server): void {
     const { pathname } = new URL(req.url ?? "/", "http://placeholder");
     if (pathname !== "/ws") {
       socket.end("HTTP/1.1 404 Not Found\r\n\r\n");
+      return;
+    }
+    if (!isAllowedHost(req.headers.host)) {
+      console.warn(`warning: refused WebSocket for host ${req.headers.host ?? "(none)"}`);
+      socket.end("HTTP/1.1 403 Forbidden\r\n\r\n");
       return;
     }
     // Same exact-match rule as POST /api/project; a missing Origin is refused.

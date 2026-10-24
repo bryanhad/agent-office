@@ -76,7 +76,7 @@ Done-when key (from 001-mvp.md):
     - a follow-up after Stop still works.
   - Moves forward: D13, D14, D15 (backend).
 
-- [ ] **9. Frontend scaffold**
+- [x] **9. Frontend scaffold**
   - Files: Vite React TS app in `frontend/` with `zustand`; `vite.config.ts` (host `127.0.0.1`, port `WEB_PORT` (the same value the backend's Origin check uses) with `strictPort: true`, so Vite fails loudly when the port is taken instead of moving to another one whose Origin the backend would refuse with 403s; proxy `/api` and `/ws` to `PORT`; reads only those two keys from the environment or `backend/.env`); root `npm run dev` runs both with `concurrently`. Low priority: a `Host` header check in the backend against DNS rebinding, allowing only `127.0.0.1:<port>` and `localhost:<port>`; check what `Host` the Vite proxy forwards (its own `WEB_PORT` host, or the backend's with `changeOrigin`) and allow exactly that. This also closes the gap that `GET /api/project` has no Origin check.
   - Verify: `npm run dev`, open `http://127.0.0.1:5173`; `PORT=3002 WEB_PORT=5174 npm run dev` serves on 5174 and proxies to 3002; `curl -H 'Host: evil.example:3001' 127.0.0.1:3001/api/project` is refused while the app still works through the proxy.
   - Moves forward: D12.

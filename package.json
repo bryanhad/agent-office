@@ -1,5 +1,11 @@
 {
   "name": "agent-office",
   "private": true,
-  "workspaces": ["backend", "frontend", "shared"]
+  "workspaces": ["backend", "frontend", "shared"],
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,green --kill-others-on-fail \"npm run dev -w backend\" \"npm run dev -w frontend\""
+  },
+  "devDependencies": {
+    "concurrently": "10.0.6"
+  }
 }

@@ -3,7 +3,7 @@
 import { config } from "./env.ts";
 import express from "express";
 import type { ApiError, OpenProjectRequest, ProjectResponse } from "@agent-office/shared";
-import { requireAllowedOrigin } from "./origin.ts";
+import { requireAllowedHost, requireAllowedOrigin } from "./origin.ts";
 import { openFromConfig, openFromRequest, projectStatus } from "./project.ts";
 import { attachWebSocket, broadcastSnapshot } from "./ws.ts";
 
@@ -12,6 +12,9 @@ const HOST = "127.0.0.1";
 await openFromConfig(config.projectDir);
 
 const app = express();
+
+// Before every route, so a DNS-rebinding page can't read anything either.
+app.use(requireAllowedHost);
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
