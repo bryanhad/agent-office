@@ -1,5 +1,5 @@
 // The fixed query() options from decision 009, shared by the session and by
-// spike/write-probe.ts, so the probe checks exactly what the app runs with.
+// scripts/write-probe.ts, so the probe checks exactly what the app runs with.
 
 import type { CanUseTool, Options } from "@anthropic-ai/claude-agent-sdk";
 import { config } from "./env.ts";

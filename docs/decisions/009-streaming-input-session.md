@@ -17,9 +17,9 @@
 | `canUseTool` | the backend's permission handler | Holds the request until approve, deny or the 10-minute timeout ([decision 008](008-pending-permissions-survive-reload.md)). |
 | `model` | `MODEL` from `backend/.env`, if set | Otherwise the account default. The backend logs the model the init message reports. `MODEL` sets the main model only; Claude Code also uses a small background model (`claude-haiku-5-5` in `modelUsage`). |
 
-The fixed options live in `backend/src/agent-options.ts`, shared by the session and `backend/spike/write-probe.ts`.
+The fixed options live in `backend/src/agent-options.ts`, shared by the session and `backend/scripts/write-probe.ts`.
 
-**Write probe:** the memory-folder hole is inside Claude Code, not in our code, so it can come back or move with any upgrade. Run `npx tsx spike/write-probe.ts` (in `backend/`) after every SDK upgrade. It tries writes into the memory folder, `~/.claude/`, `~/` and the project with a deny-everything callback, and exits non-zero unless every write reached `canUseTool`. Without the `ask` rule it reports the memory folder as skipped.
+**Write probe:** the memory-folder hole is inside Claude Code, not in our code, so it can come back or move with any upgrade. Run `npx tsx scripts/write-probe.ts` (in `backend/`) after every SDK upgrade. It tries writes into the memory folder, `~/.claude/`, `~/` and the project with a deny-everything callback, and exits non-zero unless every write reached `canUseTool`. Without the `ask` rule it reports the memory folder as skipped.
 
 **Errors:** there are two error paths, and neither may stop the backend.
 - **Turn error:** a `result` with `is_error: true` (its `subtype` can still be `"success"`). Emit `error` and `agent_state: error`. The query keeps running, and the next user message moves the agent to `thinking`.

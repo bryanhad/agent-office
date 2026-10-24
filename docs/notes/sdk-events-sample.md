@@ -1,6 +1,6 @@
 # Agent SDK events: samples from the spike
 
-Trimmed output of `backend/spike/sdk-spike.ts` (Agent SDK 0.3.309, Claude Code 2.1.309), taken from three runs: approve, deny, and a garbage token. Each run had two turns: "Create a file named spike.txt … containing the word hello." and "What file did you just try to create, and did it work?".
+Trimmed output of `backend/scripts/sdk-spike.ts` (Agent SDK 0.3.309, Claude Code 2.1.309), taken from three runs: approve, deny, and a garbage token. Each run had two turns: "Create a file named spike.txt … containing the word hello." and "What file did you just try to create, and did it work?".
 
 Read this before changing `shared/events.ts` or the event → state mapping.
 
@@ -33,7 +33,7 @@ Trimming: `…` marks removed fields or array items. The target folder is shown 
     - A flag-settings `permissions.ask: ["Edit(~/.claude/**)"]` closes that. The same write then reaches `canUseTool` and is denied. Writes to the rest of `~/.claude`, `~/` and the project reached the callback with or without the rule.
     - The memory folder is keyed by git repo (or by folder outside a repo), shared by all worktrees and subfolders, and shared with CLI sessions in the same folder: a memory written here would be loaded into my own Claude Code sessions there.
     - The `file_path` input can be `~/…` or relative, not always absolute.
-    - `backend/spike/write-probe.ts` repeats the check; run it after every SDK upgrade.
+    - `backend/scripts/write-probe.ts` repeats the check; run it after every SDK upgrade.
 22. **Parallel tool calls ask one at a time.** In step 8, two parallel `Write` calls in one assistant message produced two `tool_use` lines at once, but `canUseTool` for the second came only after the first was answered. `permissions.ts` still allows several pending requests and stays `waiting` until all are settled, in case a version asks concurrently.
 23. **`interrupt()` ends the turn with an error result.** Probed in step 8b (a throwaway script, same options as the app), one streaming-input query, three turns:
     - `interrupt()` resolves at once to `{"still_queued": []}` (the receipt lists messages still queued in the SDK; ours never are, they wait in the backend).

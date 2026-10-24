@@ -105,7 +105,7 @@ The backend **must** run on my Claude subscription through an OAuth token. See [
 - Every file edit and every command that isn't read-only asks for approval in chat. File reads inside the project and read-only commands (`ls`, `git status`) run without asking; that's how the SDK's `default` permission mode works. No auto-approve in the MVP.
 - The session loads only the project's own settings (`settingSources: ["project"]`), so allow rules from `~/.claude/settings.json` and `.claude/settings.local.json` don't apply. Allow rules committed in the project's `.claude/settings.json` are honored; the backend logs them when the project opens.
 - Never use the SDK's `allowedTools` option: it auto-approves tools and bypasses the approve/deny cards. Tools are restricted with `tools` instead.
-- Auto-memory is off for agent sessions. Its writes into `~/.claude/projects/<encoded-cwd>/memory/` skipped the approve card, and Claude Code auto-approves that folder even with memory off. So a flag-settings `ask` rule (`Edit(~/.claude/**)`) sends every write under `~/.claude` to the card. The memory folder is keyed by the git repo (or the folder outside a repo) and shared with Claude Code CLI sessions there. See [decision 009](decisions/009-streaming-input-session.md); `backend/spike/write-probe.ts` checks this after SDK upgrades.
+- Auto-memory is off for agent sessions. Its writes into `~/.claude/projects/<encoded-cwd>/memory/` skipped the approve card, and Claude Code auto-approves that folder even with memory off. So a flag-settings `ask` rule (`Edit(~/.claude/**)`) sends every write under `~/.claude` to the card. The memory folder is keyed by the git repo (or the folder outside a repo) and shared with Claude Code CLI sessions there. See [decision 009](decisions/009-streaming-input-session.md); `backend/scripts/write-probe.ts` checks this after SDK upgrades.
 - Session transcripts still go to `~/.claude/projects/<encoded-cwd>/`, regardless of `settingSources`. That's the SDK's own write, not a tool call.
 - Tool lines and approve cards never show `../` chains. A path outside the project shows as `~/…` (or absolute) with `outsideProject: true`, so the UI can warn.
 
@@ -193,8 +193,9 @@ agent-office/
 ├── backend/
 │   ├── .env               not committed
 │   ├── .env.example
-│   ├── spike/
-│   │   └── sdk-spike.ts   manual SDK sanity check
+│   ├── scripts/
+│   │   ├── sdk-spike.ts   manual SDK sanity check
+│   │   └── write-probe.ts checks every write reaches canUseTool
 │   └── src/
 │       ├── index.ts
 │       ├── project.ts
@@ -230,6 +231,10 @@ The `src` file names are a suggested starting split, not a rule.
 5. 3D office with React Three Fiber: primitives first (box room, desks, capsule agents), camera with orbit, pan and zoom.
 6. Better project selection: folder browser, recent projects, and the `agent-office [dir]` CLI start (see [Project directory selection](#6-project-directory-selection)).
 7. Nicer 3D models and animations, browsing past sessions, sounds, polish.
+8. Small items noted during the MVP build:
+   - `aria-live`: announce only `waiting` and `error`, not every state change.
+   - A "Change project" link for instances not pinned by `PROJECT_DIR`.
+   - Generate `DESIGN.md` from the finished UI with `/impeccable document`, then a polish pass with the Impeccable hook on.
 
 ## 12. Long-term goal: replace my Claude Code + terminal browser workflow
 

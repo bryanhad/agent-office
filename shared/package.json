@@ -6,5 +6,8 @@
     ".": {
       "types": "./events.ts"
     }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
   }
 }

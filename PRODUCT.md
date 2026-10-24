@@ -45,13 +45,16 @@ MVP (see `docs/plans/001-mvp.md` for scope; build only what the current plan cov
   - streamed assistant text;
   - compact one-line tool rows, never raw JSON;
   - permission cards with the tool, the file or full command, and Approve / Deny;
-  - queued messages, dimmed with a "Queued" mark and a cancel button; Esc cancels the last one, or Stops when nothing is queued;
+  - queued messages, dimmed with a "Queued" mark and a cancel button;
+  - Esc, in order: cancels the last queued message; with nothing queued, Stops the turn while the agent is busy; otherwise does nothing;
   - a thinking indicator at the bottom while the agent works: a playful word per turn, elapsed seconds and the current activity;
   - a neutral "Stopped" line, and a Stop control visible only while the agent is busy;
   - a plain textarea: Enter sends, Shift+Enter adds a newline;
   - a chat panel about 480px wide, with the office taking the rest.
 - **Paths:** a path outside the project folder carries an "outside the project" warning on tool lines and cards.
 - **State survives a reload:** the chat, pending permission cards and queued messages are restored from the snapshot.
+- **State survives a backend restart:** the SDK session id and the chat log are saved per project under `~/.agent-office/`. On open the session is resumed and the chat restored; if resume fails, a fresh session starts with a neutral notice line. A card that was pending and messages that were queued come back cancelled, so nothing reaches the agent without me seeing it.
+- **New chat:** a control in the chat header starts a fresh SDK session and an empty chat (like `/clear`); the old chat log is archived, not browsable. Only available while the agent is idle or in error with nothing queued or pending.
 - **Office renderer is swappable:** it reads only plain store state (`project`, `agents`) and holds no event logic. The MVP blobs are plain DOM and CSS; a 3D office (React Three Fiber) comes later. A 2D pixel-art phase is not planned.
 - **Later, not MVP:** multiple agents (Frontend, Backend, QA), `@` mentions, the agent browser and preview window, background processes (dev servers), MCP servers and extra tools, a usage bar, a model dropdown, diff previews on cards, a folder browser and recent projects, background-tab call-backs, sounds.
 - **Terms:** project, office, wall, desk, agent, blob, Manager, role, state, chat, tool line, permission card, Approve / Deny, queued, cancelled, Stop, Stopped.

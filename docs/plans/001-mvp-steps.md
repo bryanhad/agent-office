@@ -26,9 +26,9 @@ Done-when key (from 001-mvp.md):
 ## Steps
 
 - [x] **1. Agent SDK spike**
-  - Files: `backend/package.json`, `backend/tsconfig.json`, `backend/spike/sdk-spike.ts`, lockfile.
+  - Files: `backend/package.json`, `backend/tsconfig.json`, `backend/scripts/sdk-spike.ts`, lockfile.
   - Standalone script: loads `CLAUDE_CODE_OAUTH_TOKEN` from `backend/.env`, exits without it, strips `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, `CLAUDE_CODE_USE_BEDROCK`, `CLAUDE_CODE_USE_VERTEX`, `CLAUDE_CODE_USE_FOUNDRY` (warns by name only). Runs one streaming-input `query()` in the folder given as an argument with `settingSources: ["project"]`, `permissionMode: "default"`, the `claude_code` system prompt preset and `disallowedTools: ["AskUserQuestion"]`. Turn 1 asks for a file to be created (y/n in the terminal at the permission callback); turn 2 asks what file it tried to create. Prints every event and `apiKeySource`.
-  - Verify: `cd backend && npx tsx spike/sdk-spike.ts <folder>`; run once answering y, once answering n, and once with `CLAUDE_CODE_OAUTH_TOKEN=garbage` to check the SDK doesn't fall back to the Claude Code login.
+  - Verify: `cd backend && npx tsx scripts/sdk-spike.ts <folder>`; run once answering y, once answering n, and once with `CLAUDE_CODE_OAUTH_TOKEN=garbage` to check the SDK doesn't fall back to the Claude Code login.
   - Moves forward: de-risks D1, D3, D4, D5, D8.
 
 - [x] **2. Record spike findings and decisions (docs only)**
@@ -129,7 +129,7 @@ Done-when key (from 001-mvp.md):
     - New chat: empty chat, and the agent no longer remembers.
   - Moves forward: D16, D17, D18.
 
-- [ ] **14. Commands, README, done-when**
-  - Files: `PRODUCT.md` (update Capabilities and Constraints to match the shipped MVP), `CLAUDE.md` (Commands, including `backend/spike/sdk-spike.ts` as the manual SDK sanity check and `backend/spike/write-probe.ts`, to run after every SDK upgrade because the auto-approved memory folder is inside Claude Code; see decision 009), `README.md`, `docs/plans/001-mvp.md` (tick done-when items after a full manual run, including two instances side by side).
+- [x] **14. Commands, README, done-when**
+  - Files: `PRODUCT.md` (update Capabilities and Constraints to match the shipped MVP), `CLAUDE.md` (Commands, including `backend/scripts/sdk-spike.ts` as the manual SDK sanity check and `backend/scripts/write-probe.ts`, to run after every SDK upgrade because the auto-approved memory folder is inside Claude Code; see decision 009), `README.md`, `docs/plans/001-mvp.md` (tick done-when items after a full manual run, including two instances side by side).
   - Verify: follow the README from a fresh clone.
   - Moves forward: D12 and the final check of all items.

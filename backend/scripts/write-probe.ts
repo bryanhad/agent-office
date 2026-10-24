@@ -1,7 +1,7 @@
 // Write probe: checks that every file write reaches canUseTool with the app's real
 // query() options. Claude Code auto-approved writes into its memory folder past
 // canUseTool (sdk-events-sample.md finding 21), so run this after every SDK upgrade.
-// Usage: npx tsx spike/write-probe.ts [project-folder]   (default: a fresh temp folder)
+// Usage: npx tsx scripts/write-probe.ts [project-folder]   (default: a fresh temp folder)
 // Exits 1 if any write skipped canUseTool, or 2 if the agent never attempted one.
 
 import { existsSync, mkdtempSync, realpathSync, rmSync } from "node:fs";

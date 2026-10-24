@@ -3,9 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "spike": "tsx spike/sdk-spike.ts",
     "dev": "tsx watch src/index.ts",
-    "start": "tsx src/index.ts"
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit -p .",
+    "sdk-spike": "tsx scripts/sdk-spike.ts",
+    "write-probe": "tsx scripts/write-probe.ts"
   },
   "dependencies": {
     "@agent-office/shared": "*",

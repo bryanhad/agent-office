@@ -3,7 +3,10 @@
   "private": true,
   "workspaces": ["backend", "frontend", "shared"],
   "scripts": {
-    "dev": "concurrently -n backend,frontend -c blue,green --kill-others-on-fail \"npm run dev -w backend\" \"npm run dev -w frontend\""
+    "dev": "concurrently -n backend,frontend -c blue,green --kill-others-on-fail \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "start": "concurrently -n backend,frontend -c blue,green --kill-others-on-fail \"npm start -w backend\" \"npm run dev -w frontend\"",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build": "npm run build -w frontend"
   },
   "devDependencies": {
     "concurrently": "10.0.6"

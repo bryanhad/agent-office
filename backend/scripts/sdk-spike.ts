@@ -1,5 +1,5 @@
-// Spike: run one Agent SDK query and print every event it emits.
-// Usage: npx tsx spike/sdk-spike.ts <project-folder>
+// SDK sanity check: run one Agent SDK query and print every event it emits.
+// Usage: npx tsx scripts/sdk-spike.ts <project-folder>
 
 import path from "node:path";
 import os from "node:os";
@@ -41,7 +41,7 @@ for (const name of STRIPPED_VARS) {
 
 const arg = process.argv[2];
 if (!arg) {
-  console.error("Usage: npx tsx spike/sdk-spike.ts <project-folder>");
+  console.error("Usage: npx tsx scripts/sdk-spike.ts <project-folder>");
   process.exit(1);
 }
 const cwd = path.resolve(arg.replace(/^~(?=$|\/)/, os.homedir()));

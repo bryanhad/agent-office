@@ -4,7 +4,7 @@ A local web app (macOS, personal tool) that wraps Claude Code in a visual "offic
 
 ## Status
 
-Pre-MVP. Working on [docs/plans/001-mvp.md](docs/plans/001-mvp.md).
+MVP: [docs/plans/001-mvp.md](docs/plans/001-mvp.md) is built. No next plan yet; don't start roadmap items without one.
 
 ## Tech stack
 
@@ -16,7 +16,14 @@ Pre-MVP. Working on [docs/plans/001-mvp.md](docs/plans/001-mvp.md).
 
 ## Commands
 
-To be added once the project is scaffolded.
+Run from the repo root. Config is in `backend/.env` (see `backend/.env.example`).
+
+- `npm run dev`: backend (watch) + Vite on http://127.0.0.1:5173.
+- `npm start`: same, backend without watch. Vite is still needed: the backend only accepts the `WEB_PORT` origin.
+- `npm run typecheck`: all workspaces.
+- `npm run build`: frontend build, a compile check only (nothing serves `dist`).
+- `npm run sdk-spike -w backend -- <folder>`: manual SDK sanity check; prints every event, asks y/n per tool.
+- `npm run write-probe -w backend`: run after every SDK upgrade or change to `agent-options.ts`; fails if any write skips `canUseTool` (decision 009).
 
 ## Rules
 
