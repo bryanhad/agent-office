@@ -25,29 +25,48 @@ const VERBS: Record<string, string> = {
 };
 
 const MAX_ACTIVITY = 40;
+const MAX_LABEL = 80;
+
+function truncate(text: string, max: number): string {
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
 
 const chat = (event: ChatEvent): Output => ({ kind: "chat", event });
 const state = (state: AgentState, activity?: string): Output => ({ kind: "state", state, activity });
 
 // The path for file tools (see paths.ts), the command for Bash, the pattern for Glob/Grep.
+// `label` is one short line for tool lines; `full` is the whole value, for the permission
+// card, where I review the exact command before approving.
 export function toolLabel(
   tool: string,
   input: Record<string, unknown>,
   dirs: string[],
-): { label: string; outsideProject?: true } {
+): { label: string; full: string; outsideProject?: true } {
   const field = FILE_TOOLS.has(tool) ? "file_path" : tool === "Bash" ? "command" : "pattern";
   const value = input[field];
-  if (typeof value !== "string") return { label: tool };
-  if (field !== "file_path") return { label: value };
+  if (typeof value !== "string") return { label: tool, full: tool };
+  if (field !== "file_path") return { label: firstLine(value), full: value };
   const shown = displayPath(value, dirs);
-  return shown.outsideProject ? { label: shown.path, outsideProject: true } : { label: shown.path };
+  const label = { label: shown.path, full: shown.path };
+  return shown.outsideProject ? { ...label, outsideProject: true } : label;
 }
 
-// Bubble text, e.g. "editing App.tsx".
+// One line for a command or pattern; "…" marks dropped lines or characters.
+function firstLine(value: string): string {
+  const [first, ...rest] = value.trim().split("\n");
+  return rest.length > 0 ? `${truncate(first, MAX_LABEL - 2)} …` : truncate(first, MAX_LABEL);
+}
+
+// The program a command runs: its first word after any VAR=value, as a basename.
+function program(command: string): string {
+  const word = command.trim().split(/\s+/).find((token) => !/^\w+=/.test(token));
+  return word ? path.basename(word) : command;
+}
+
+// Bubble text, e.g. "editing App.tsx" or "running python3".
 export function toolActivity(tool: string, label: string): string {
-  const subject = FILE_TOOLS.has(tool) ? path.basename(label) : label.split("\n")[0];
-  const text = `${VERBS[tool] ?? "using"} ${subject}`;
-  return text.length > MAX_ACTIVITY ? `${text.slice(0, MAX_ACTIVITY - 1)}…` : text;
+  const subject = FILE_TOOLS.has(tool) ? path.basename(label) : tool === "Bash" ? program(label) : label;
+  return truncate(`${VERBS[tool] ?? "using"} ${subject}`, MAX_ACTIVITY);
 }
 
 // `dirs` is the project folder as opened plus its realpath (see paths.ts).

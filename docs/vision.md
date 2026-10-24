@@ -133,7 +133,7 @@ A "blob" is the simplest possible character: a `<div>` with `border-radius: 50%`
 
 | State | When | Look |
 | --- | --- | --- |
-| `idle` | Nothing running, or I pressed Stop | Soft purple, slow breathing |
+| `idle` | Nothing running and nothing queued, or I pressed Stop (and sent nothing after it). A turn that ends with messages queued goes straight to `thinking` for the next one, never through `idle` | Soft purple, slow breathing |
 | `thinking` | Agent is reasoning or writing text | Purple, faster breathing, "..." bubble |
 | `working` | Agent is editing a file or running a command | Green, bouncing, bubble with a short label (e.g. "editing App.tsx") |
 | `waiting` | Agent needs my approval or input | Amber, pulsing, "!" bubble. **Must be the most noticeable state.** |

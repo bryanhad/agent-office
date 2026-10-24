@@ -74,7 +74,8 @@ async function consume(s: Session, run: Run): Promise<void> {
       if (msg.type === "result" && run.stopping) {
         run.stopping = false;
         addChat({ type: "stopped", id: randomUUID() });
-        setAgentState("idle");
+        // Only messages sent after Stop can be queued here; they start the next turn.
+        if (queuedMessages().length === 0) setAgentState("idle");
         deliverNext(s);
         continue;
       }
@@ -83,6 +84,9 @@ async function consume(s: Session, run: Run): Promise<void> {
         // After Stop, the turn's last messages (e.g. the rejected tool's result) would
         // move the state back to thinking; the result above sets it instead.
         else if (run.stopping) continue;
+        // A queued message starts the next turn right below, so go straight to thinking
+        // instead of flashing idle in between.
+        else if (out.state === "idle" && queuedMessages().length > 0) continue;
         // While a request waits, it owns the state: a parallel tool_use arriving now
         // would otherwise turn `waiting` into `working`. Errors still show.
         else if (!hasPending() || out.state === "error") setAgentState(out.state, out.activity);

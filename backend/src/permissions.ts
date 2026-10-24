@@ -33,7 +33,7 @@ export function hasPending(): boolean {
 // `dirs` as in paths.ts, for project-relative labels.
 export function createCanUseTool(dirs: string[]): CanUseTool {
   return (toolName, input, { signal, requestId, toolUseID, description }) => {
-    const { label, outsideProject } = toolLabel(toolName, input, dirs);
+    const { label, full, outsideProject } = toolLabel(toolName, input, dirs);
     addChat({
       type: "permission_request",
       id: requestId,
@@ -42,7 +42,7 @@ export function createCanUseTool(dirs: string[]): CanUseTool {
       // options.description is the SDK's ready-made label, but for a file outside the
       // project it can be a "../" chain, so file tools use our own.
       label: FILE_TOOLS.has(toolName) ? label : (description ?? label),
-      detail: label,
+      detail: full,
       ...(outsideProject && { outsideProject }),
     });
     setAgentState("waiting");

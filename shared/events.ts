@@ -19,7 +19,8 @@ export interface Agent {
   id: AgentId;
   role: string;
   state: AgentState;
-  // Short text for the bubble while working, e.g. "editing App.tsx".
+  // Short text for the bubble while working, e.g. "editing App.tsx", or "running python3"
+  // (just the program) for Bash.
   activity?: string;
 }
 
@@ -80,7 +81,8 @@ export interface AssistantTextEvent {
 // One compact tool line, e.g. tool "Read", label "src/App.tsx".
 // Source: a `tool_use` block in a complete `assistant` message (not the
 // `input_json_delta` stream). The label is built from the input: a project-relative
-// path for file tools, the command for Bash, the pattern for Glob/Grep.
+// path for file tools, the command for Bash, the pattern for Glob/Grep. Commands and
+// patterns are cut to their first line and 80 characters, ending in "…" when anything was cut.
 export interface ToolUseEvent {
   type: "tool_use";
   // The SDK's tool_use id. A permission request for this call has the same `toolUseId`.
@@ -102,7 +104,8 @@ export interface PermissionRequestEvent {
   tool: string;
   // Short label: options.description when present (e.g. "spike.txt"), else built from the input.
   label: string;
-  // What the card shows in its box: the project-relative path, or the full Bash command.
+  // What the card shows in its box: the project-relative path, or the full Bash command
+  // (every line, never cut), since that's what I approve.
   detail: string;
   // File tools only: the file is outside the project folder. Absent otherwise.
   outsideProject?: true;
