@@ -1,17 +1,15 @@
 // The agent session: one streaming-input query() per open project, with the options
-// from decision 009. Feeds my messages in, applies the mapped SDK output to the chat
-// and agent state, and survives both error paths without stopping the backend.
+// from decision 009 (agent-options.ts). Feeds my messages in, applies the mapped SDK
+// output to the chat and agent state, and survives both error paths without stopping
+// the backend.
 
 import { randomUUID } from "node:crypto";
 import { realpath } from "node:fs/promises";
 import { query, type CanUseTool, type Options, type Query, type SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
+import { agentOptions } from "./agent-options.ts";
 import { addChat, resetChat, setAgentState, unresolvedRequests } from "./chat.ts";
-import { config } from "./env.ts";
 import { MessageQueue } from "./message-queue.ts";
 import { createMapper } from "./sdk-mapping.ts";
-
-// Fixed, because the default list changes with the account and Claude Code version.
-const TOOLS = ["Read", "Glob", "Grep", "Edit", "Write", "Bash"];
 
 // One running query() and the things needed to feed and stop it.
 interface Run {
@@ -42,20 +40,7 @@ const denyEverything: CanUseTool = async (toolName) => {
 };
 
 function options(s: Session, abort: AbortController): Options {
-  return {
-    cwd: s.dir,
-    abortController: abort,
-    settingSources: ["project"],
-    permissionMode: "default",
-    systemPrompt: { type: "preset", preset: "claude_code" },
-    tools: TOOLS,
-    // No allowedTools: it auto-approves tools past the approve/deny cards.
-    disallowedTools: ["AskUserQuestion"],
-    includePartialMessages: true,
-    canUseTool: denyEverything,
-    ...(config.model && { model: config.model }),
-    ...(s.sessionId && { resume: s.sessionId }),
-  };
+  return { ...agentOptions(s.dir, abort, denyEverything), ...(s.sessionId && { resume: s.sessionId }) };
 }
 
 function start(s: Session): Run {
@@ -81,6 +66,9 @@ async function consume(s: Session, run: Run): Promise<void> {
         loggedInit = true;
         console.log(`agent model: ${msg.model}`);
         console.log(`agent tools: ${msg.tools.join(", ")}`);
+        // Not in the SDK's types, but sent (finding 18); should have no "auto" entry.
+        const memoryPaths = (msg as { memory_paths?: unknown }).memory_paths;
+        console.log(`agent memory paths: ${JSON.stringify(memoryPaths ?? {})}`);
       }
       for (const out of map(msg)) {
         if (out.kind === "chat") addChat(out.event);

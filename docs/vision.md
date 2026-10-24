@@ -104,7 +104,9 @@ The backend **must** run on my Claude subscription through an OAuth token. See [
 - Every file edit and every command that isn't read-only asks for approval in chat. File reads inside the project and read-only commands (`ls`, `git status`) run without asking; that's how the SDK's `default` permission mode works. No auto-approve in the MVP.
 - The session loads only the project's own settings (`settingSources: ["project"]`), so allow rules from `~/.claude/settings.json` and `.claude/settings.local.json` don't apply. Allow rules committed in the project's `.claude/settings.json` are honored; the backend logs them when the project opens.
 - Never use the SDK's `allowedTools` option: it auto-approves tools and bypasses the approve/deny cards. Tools are restricted with `tools` instead.
-- Files the SDK writes outside the repo: session transcripts and auto-memory go under `~/.claude/projects/<encoded-cwd>/`, regardless of `settingSources`.
+- Auto-memory is off for agent sessions. Its writes into `~/.claude/projects/<encoded-cwd>/memory/` skipped the approve card, and Claude Code auto-approves that folder even with memory off. So a flag-settings `ask` rule (`Edit(~/.claude/**)`) sends every write under `~/.claude` to the card. The memory folder is keyed by the git repo (or the folder outside a repo) and shared with Claude Code CLI sessions there. See [decision 009](decisions/009-streaming-input-session.md); `backend/spike/write-probe.ts` checks this after SDK upgrades.
+- Session transcripts still go to `~/.claude/projects/<encoded-cwd>/`, regardless of `settingSources`. That's the SDK's own write, not a tool call.
+- Tool lines and approve cards never show `../` chains. A path outside the project shows as `~/…` (or absolute) with `outsideProject: true`, so the UI can warn.
 
 ### Pending permission requests
 

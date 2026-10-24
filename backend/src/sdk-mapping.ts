@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { AgentState, ChatEvent } from "@agent-office/shared";
+import { displayPath } from "./paths.ts";
 
 export type Output = { kind: "chat"; event: ChatEvent } | { kind: "state"; state: AgentState; activity?: string };
 
@@ -28,35 +29,31 @@ const MAX_ACTIVITY = 40;
 const chat = (event: ChatEvent): Output => ({ kind: "chat", event });
 const state = (state: AgentState, activity?: string): Output => ({ kind: "state", state, activity });
 
-// `dirs` is the project folder as opened plus its realpath: on macOS the agent may
-// report /private/tmp/x for a project opened as /tmp/x.
+// The path for file tools (see paths.ts), the command for Bash, the pattern for Glob/Grep.
+export function toolLabel(
+  tool: string,
+  input: Record<string, unknown>,
+  dirs: string[],
+): { label: string; outsideProject?: true } {
+  const field = FILE_TOOLS.has(tool) ? "file_path" : tool === "Bash" ? "command" : "pattern";
+  const value = input[field];
+  if (typeof value !== "string") return { label: tool };
+  if (field !== "file_path") return { label: value };
+  const shown = displayPath(value, dirs);
+  return shown.outsideProject ? { label: shown.path, outsideProject: true } : { label: shown.path };
+}
+
+// Bubble text, e.g. "editing App.tsx".
+export function toolActivity(tool: string, label: string): string {
+  const subject = FILE_TOOLS.has(tool) ? path.basename(label) : label.split("\n")[0];
+  const text = `${VERBS[tool] ?? "using"} ${subject}`;
+  return text.length > MAX_ACTIVITY ? `${text.slice(0, MAX_ACTIVITY - 1)}…` : text;
+}
+
+// `dirs` is the project folder as opened plus its realpath (see paths.ts).
 export function createMapper(dirs: string[]): (msg: SDKMessage) => Output[] {
   // Text block ids are "<message id>:<block index>", unique across the whole chat.
   let messageId = "";
-
-  function relative(file: string): string {
-    if (!path.isAbsolute(file)) return file;
-    for (const dir of dirs) {
-      const rel = path.relative(dir, file);
-      if (rel !== ".." && !rel.startsWith(`..${path.sep}`)) return rel || ".";
-    }
-    return path.relative(dirs[0], file);
-  }
-
-  // Project-relative path for file tools, the command for Bash, the pattern for Glob/Grep.
-  function label(tool: string, input: Record<string, unknown>): string {
-    const field = FILE_TOOLS.has(tool) ? "file_path" : tool === "Bash" ? "command" : "pattern";
-    const value = input[field];
-    if (typeof value !== "string") return tool;
-    return field === "file_path" ? relative(value) : value;
-  }
-
-  // Bubble text, e.g. "editing App.tsx".
-  function activity(tool: string, label: string): string {
-    const subject = FILE_TOOLS.has(tool) ? path.basename(label) : label.split("\n")[0];
-    const text = `${VERBS[tool] ?? "using"} ${subject}`;
-    return text.length > MAX_ACTIVITY ? `${text.slice(0, MAX_ACTIVITY - 1)}…` : text;
-  }
 
   return function map(msg: SDKMessage): Output[] {
     switch (msg.type) {
@@ -81,10 +78,10 @@ export function createMapper(dirs: string[]): (msg: SDKMessage) => Output[] {
         return msg.message.content.flatMap((block) => {
           if (block.type !== "tool_use") return [];
           const input = (block.input ?? {}) as Record<string, unknown>;
-          const text = label(block.name, input);
+          const { label, outsideProject } = toolLabel(block.name, input, dirs);
           return [
-            chat({ type: "tool_use", id: block.id, tool: block.name, label: text }),
-            state("working", activity(block.name, text)),
+            chat({ type: "tool_use", id: block.id, tool: block.name, label, ...(outsideProject && { outsideProject }) }),
+            state("working", toolActivity(block.name, label)),
           ];
         });
       }

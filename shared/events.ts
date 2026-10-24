@@ -2,7 +2,9 @@
 // Each event's comment says which SDK message(s) it comes from; the samples and
 // findings it relies on are in docs/notes/sdk-events-sample.md.
 //
-// Paths in events are relative to the project folder, never absolute.
+// Paths in events are relative to the project folder. A path outside it is shown as
+// `~/…` under the home folder, else absolute, never as a "../" chain, and its event
+// carries `outsideProject: true` so the UI can warn.
 // No cost, model or usage fields: the SDK's cost figures are list prices, not
 // billing, and the usage bar is a roadmap item.
 
@@ -65,6 +67,8 @@ export interface ToolUseEvent {
   id: string;
   tool: string;
   label: string;
+  // File tools only: the file is outside the project folder. Absent otherwise.
+  outsideProject?: true;
 }
 
 // The agent wants approval. Shown as a card until a `permission_resolved` with the same id.
@@ -80,6 +84,8 @@ export interface PermissionRequestEvent {
   label: string;
   // What the card shows in its box: the project-relative path, or the full Bash command.
   detail: string;
+  // File tools only: the file is outside the project folder. Absent otherwise.
+  outsideProject?: true;
 }
 
 // The outcome of a permission request.

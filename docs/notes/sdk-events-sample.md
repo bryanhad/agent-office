@@ -25,9 +25,15 @@ Trimming: `…` marks removed fields or array items. The target folder is shown 
 15. **A second, smaller model runs in the background.** `modelUsage` shows `claude-haiku-5-5` next to the main model. `MODEL` sets the main model only.
 16. **The model depends on the account.** The garbage run reported `claude-sonnet-5-5` and the real run `claude-opus-5-5` (the account default).
 17. **The tool list depends on the account and the Claude Code version.** The real run added `WebFetch`, `RemoteTrigger` and `DesignSync`, and neither run listed `Glob` or `Grep`. Hence the explicit `tools` list in [decision 009](../decisions/009-streaming-input-session.md).
-18. **Some files land outside the repo regardless of `settingSources`.** `memory_paths.auto` and the transcripts are under `~/.claude/projects/<encoded-cwd>/`. Example: `/tmp/spike-test` becomes `~/.claude/projects/-private-tmp-spike-test/` (macOS resolves `/tmp` to `/private/tmp`, then slashes become dashes).
+18. **Some files land outside the repo regardless of `settingSources`.** `memory_paths.auto` and the transcripts are under `~/.claude/projects/<encoded-cwd>/`. Example: `/tmp/spike-test` becomes `~/.claude/projects/-private-tmp-spike-test/` (macOS resolves `/tmp` to `/private/tmp`, then slashes become dashes). Auto-memory is now off; see finding 21.
 19. **Cost figures aren't billing.** `total_cost_usd` and `modelUsage[].costUSD` are reported at list price (`costBasis: "list"`) even on the subscription. `total_cost_usd` and `modelUsage` are the session total so far; `model_usage_since_last_result` is this turn only. Confirmed from an approve run's turn-2 result: `total_cost_usd` 0.0167734 = `modelUsage` opus 0.0166458 + haiku 0.0001276, while `model_usage_since_last_result` was 0.0060162. Don't show any of them as charges.
 20. **Status messages.** `system/status` with `status: "requesting"` precedes each model request.
+21. **Auto-memory writes bypass `canUseTool`.** Found in the step 7 build with a deny-everything callback, in a folder with no `.claude/`. "Remember the codeword banana. Just reply ok." made the agent write `codeword-banana.md` and `MEMORY.md` into `~/.claude/projects/-private-tmp-ao-clean/memory/` with no `permission_request`. Their tool lines read `../../../Users/…`. The fix has two parts:
+    - `autoMemoryEnabled: false` (plus `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`) stops the agent from writing memories on its own: the banana message just gets "ok", and `system/init` has `memory_paths: {}`. But Claude Code **still auto-approves writes into the memory folder**: an explicit "Write ~/.claude/projects/…/memory/codeword.md" succeeded without the callback.
+    - A flag-settings `permissions.ask: ["Edit(~/.claude/**)"]` closes that. The same write then reaches `canUseTool` and is denied. Writes to the rest of `~/.claude`, `~/` and the project reached the callback with or without the rule.
+    - The memory folder is keyed by git repo (or by folder outside a repo), shared by all worktrees and subfolders, and shared with CLI sessions in the same folder: a memory written here would be loaded into my own Claude Code sessions there.
+    - The `file_path` input can be `~/…` or relative, not always absolute.
+    - `backend/spike/write-probe.ts` repeats the check; run it after every SDK upgrade.
 
 ## Samples
 

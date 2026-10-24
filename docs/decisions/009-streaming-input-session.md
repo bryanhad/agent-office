@@ -12,8 +12,14 @@
 | `allowedTools` | not set (empty) | It auto-approves tools, which would bypass the approve/deny cards. |
 | `disallowedTools` | `["AskUserQuestion"]` | It goes through `canUseTool` and the MVP has no UI for it, so the agent asks in plain text instead. |
 | `includePartialMessages` | `true` | Needed for `text_delta` stream events (streaming text in the chat). |
+| `settings` | `{ autoMemoryEnabled: false, permissions: { ask: ["Edit(~/.claude/**)"] } }` | Auto-memory off, so the agent doesn't write memories on its own. Claude Code still auto-approves writes into the memory folder past `canUseTool` even then ([finding 21](../notes/sdk-events-sample.md#findings)), so the `ask` rule sends every write under `~/.claude` to the callback. It covers all of `~/.claude`, not just the memory folder, in case a later version auto-approves another folder there. These are flag settings, which outrank the project's `.claude/settings.json`. |
+| `env` | `process.env` plus `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1` | The documented second switch for auto-memory. `env` replaces the environment rather than merging, so the one `env.ts` already cleaned is spread in. |
 | `canUseTool` | the backend's permission handler | Holds the request until approve, deny or the 10-minute timeout ([decision 008](008-pending-permissions-survive-reload.md)). |
 | `model` | `MODEL` from `backend/.env`, if set | Otherwise the account default. The backend logs the model the init message reports. `MODEL` sets the main model only; Claude Code also uses a small background model (`claude-haiku-5-5` in `modelUsage`). |
+
+The fixed options live in `backend/src/agent-options.ts`, shared by the session and `backend/spike/write-probe.ts`.
+
+**Write probe:** the memory-folder hole is inside Claude Code, not in our code, so it can come back or move with any upgrade. Run `npx tsx spike/write-probe.ts` (in `backend/`) after every SDK upgrade. It tries writes into the memory folder, `~/.claude/`, `~/` and the project with a deny-everything callback, and exits non-zero unless every write reached `canUseTool`. Without the `ask` rule it reports the memory folder as skipped.
 
 **Errors:** there are two error paths, and neither may stop the backend.
 - **Turn error:** a `result` with `is_error: true` (its `subtype` can still be `"success"`). Emit `error` and `agent_state: error`. The query keeps running, and the next user message moves the agent to `thinking`.
