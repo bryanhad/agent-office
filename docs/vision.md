@@ -130,7 +130,7 @@ A "blob" is the simplest possible character: a `<div>` with `border-radius: 50%`
 
 | State | When | Look |
 | --- | --- | --- |
-| `idle` | Nothing running | Soft purple, slow breathing |
+| `idle` | Nothing running, or I pressed Stop | Soft purple, slow breathing |
 | `thinking` | Agent is reasoning or writing text | Purple, faster breathing, "..." bubble |
 | `working` | Agent is editing a file or running a command | Green, bouncing, bubble with a short label (e.g. "editing App.tsx") |
 | `waiting` | Agent needs my approval or input | Amber, pulsing, "!" bubble. **Must be the most noticeable state.** |
@@ -149,6 +149,14 @@ Colors and animations can change; the states and "waiting is the most noticeable
 - Tool activity shown compactly (e.g. "Edited `src/App.tsx`"), not as raw JSON.
 - Permission requests are cards with the tool, the command or file, and **Approve** / **Deny** buttons.
 - Input at the bottom. Enter sends, Shift+Enter adds a newline.
+- **Queued messages.** A message sent while the agent is busy is held in a backend queue, not pushed into the SDK yet. It shows in the chat as queued: dimmed, with a "Queued" mark. When the current turn ends (idle), the backend delivers the next queued message, and it shows as a normal message from then on.
+  - Cancelling: each queued message has a cancel button, and Esc in the input cancels the last queued one. Cancelled means it never reached the agent.
+  - Queued messages survive a reconnect through the snapshot.
+- **Stop.** A Stop control, visible only while the agent is busy (thinking, working or waiting), calls the query's `interrupt()`. Stop means stop everything:
+  - it interrupts the current turn;
+  - it marks every queued message cancelled;
+  - it cancels any pending permission request (`permission_resolved` "cancelled").
+  - The agent goes to `idle`.
 
 ## 9. Agents and roles
 

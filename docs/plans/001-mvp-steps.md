@@ -16,6 +16,9 @@ Done-when key (from 001-mvp.md):
 - D10 valid `PROJECT_DIR` opens straight into the main screen
 - D11 invalid `PROJECT_DIR` shows the config warning and a manual path still works
 - D12 two instances with different `PORT` / `WEB_PORT` / `PROJECT_DIR` run side by side
+- D13 a message sent while busy shows as queued and is delivered when the turn ends
+- D14 a queued message can be cancelled (button or Esc) and the agent never sees it
+- D15 Stop interrupts the agent, cancels queued messages and pending permissions, blob goes idle
 
 ## Steps
 
@@ -59,6 +62,20 @@ Done-when key (from 001-mvp.md):
   - Verify (wscat): ask for a file change → `permission_request` + `waiting`; approve → file changes; deny → agent says so; reconnect while pending → snapshot has it and approve works; `PERMISSION_TIMEOUT_MS=10000` → auto-deny.
   - Moves forward: D4, D5, D9 (backend).
 
+- [ ] **8b. Message queue and Stop (backend)**
+  - Files:
+    - `shared/events.ts`: decide the event shapes here. At least a queued state for a `user_message` that a reconnect can replay; a "delivered" and a "cancelled" change; client events to cancel one queued message and to stop. Plus the zod schemas in `ws.ts`.
+    - `backend/src/session.ts` or a small module next to it: the backend queue. Messages sent while the agent is busy stay there, not in the SDK input. The next one is pushed into the query when the turn goes idle.
+    - Stop calls `query.interrupt()`, marks all queued messages cancelled, and cancels pending permissions (`permission_resolved` "cancelled", via `permissions.ts`). State goes to `idle`.
+    - Check against the SDK docs what `interrupt()` does to the running turn (whether a `result` follows, and what it looks like) before mapping it.
+  - Verify (wscat):
+    - send while busy → queued, delivered after idle;
+    - cancel a queued one → the agent never answers it;
+    - reconnect with a queued message → the snapshot has it as queued;
+    - Stop mid-turn with one queued and one pending request → turn stops, both cancelled, `idle`;
+    - a follow-up after Stop still works.
+  - Moves forward: D13, D14, D15 (backend).
+
 - [ ] **9. Frontend scaffold**
   - Files: Vite React TS app in `frontend/` with `zustand`; `vite.config.ts` (host `127.0.0.1`, port `WEB_PORT` (the same value the backend's Origin check uses) with `strictPort: true`, so Vite fails loudly when the port is taken instead of moving to another one whose Origin the backend would refuse with 403s; proxy `/api` and `/ws` to `PORT`; reads only those two keys from the environment or `backend/.env`); root `npm run dev` runs both with `concurrently`. Low priority: a `Host` header check in the backend against DNS rebinding, allowing only `127.0.0.1:<port>` and `localhost:<port>`; check what `Host` the Vite proxy forwards (its own `WEB_PORT` host, or the backend's with `changeOrigin`) and allow exactly that. This also closes the gap that `GET /api/project` has no Origin check.
   - Verify: `npm run dev`, open `http://127.0.0.1:5173`; `PORT=3002 WEB_PORT=5174 npm run dev` serves on 5174 and proxies to 3002; `curl -H 'Host: evil.example:3001' 127.0.0.1:3001/api/project` is refused while the app still works through the proxy.
@@ -70,14 +87,25 @@ Done-when key (from 001-mvp.md):
   - Moves forward: D2, D10, D11.
 
 - [ ] **11. Two-panel layout, WebSocket client, chat**
-  - Files: `frontend/src/ws.ts` (connect, reconnect, pass events to the store), `frontend/src/store.ts` (`applyEvent`), `frontend/src/chat/ChatPanel.tsx`, `MessageList.tsx`, `ChatInput.tsx` (Enter sends, Shift+Enter newline; panel about 480px wide).
-  - Verify: ask "what does this project do?" and watch it stream; a follow-up remembers; reload and the chat is still there.
-  - Moves forward: D3, D8.
+  - Files: `frontend/src/ws.ts` (connect, reconnect, pass events to the store), `frontend/src/store.ts` (`applyEvent`), `frontend/src/chat/ChatPanel.tsx`, `MessageList.tsx`, `ChatInput.tsx` (Enter sends, Shift+Enter newline; panel about 480px wide). Queued messages show dimmed with a "Queued" mark and a cancel button; Esc in the input cancels the last queued one. A Stop button is visible only while the agent is busy (thinking, working or waiting).
+  - Verify:
+    - ask "what does this project do?" and watch it stream;
+    - a follow-up remembers;
+    - reload and the chat is still there;
+    - send while busy → queued, then delivered;
+    - cancel one with the button and one with Esc;
+    - Stop mid-turn → idle.
+  - Moves forward: D3, D8, D13, D14, D15.
 
 - [ ] **12. Tool lines and permission cards**
   - Files: `frontend/src/chat/ToolLine.tsx`, `frontend/src/chat/PermissionCard.tsx`.
-  - Verify: ask for a small change, approve, check `git diff`; deny another and see the agent say so; reload while a card is showing, it comes back and approve works.
-  - Moves forward: D4, D5, D9.
+  - Files (continued): tool lines and cards with `outsideProject` show a visible "outside the project" warning. A card resolved as `cancelled` (Stop, project switch) shows as cancelled without buttons.
+  - Verify:
+    - ask for a small change, approve, check `git diff`;
+    - deny another and see the agent say so;
+    - reload while a card is showing; it comes back and approve works;
+    - Stop while a card is showing → card shows cancelled.
+  - Moves forward: D4, D5, D9, D15.
 
 - [ ] **13. Office and blob**
   - Files: `frontend/src/office/Office.tsx`, `frontend/src/office/Blob.tsx`, `frontend/src/office/blob.css`. Reads only `project` and `agents` from the store.
