@@ -6,6 +6,7 @@ import { CrossGlyph, StopGlyph } from "../glyphs.tsx";
 import { useStore, type ChatItem } from "../store.ts";
 import { send } from "../ws.ts";
 import { Markdown } from "./Markdown.tsx";
+import { ThinkingIndicator } from "./ThinkingIndicator.tsx";
 
 // How close to the bottom still counts as "at the bottom", for sub-pixel scroll positions
 // and a last line that's only partly in view.
@@ -16,6 +17,8 @@ const DECISION_LABEL = { approved: "Approved", denied: "Denied", timed_out: "Tim
 export function MessageList({ projectName }: { projectName: string }) {
   const timeline = useStore((state) => state.timeline);
   const queued = useStore((state) => state.queued);
+  // The thinking indicator at the bottom appears and changes with the agent's state.
+  const agents = useStore((state) => state.agents);
   const list = useRef<HTMLDivElement>(null);
   // A ref, not state: it's read during layout, before the scroll handler would re-render.
   const atBottom = useRef(true);
@@ -37,7 +40,7 @@ export function MessageList({ projectName }: { projectName: string }) {
   useLayoutEffect(() => {
     if (atBottom.current) scrollToBottom();
     else setNewBelow(true);
-  }, [timeline, queued]);
+  }, [timeline, queued, agents]);
 
   // The list also shrinks when the input grows; stay pinned to the bottom through that.
   useLayoutEffect(() => {
@@ -62,6 +65,7 @@ export function MessageList({ projectName }: { projectName: string }) {
         {queued.map((message) => (
           <UserMessage key={`user-${message.id}`} id={message.id} text={message.text} status="queued" />
         ))}
+        <ThinkingIndicator />
       </div>
       {newBelow && (
         <button

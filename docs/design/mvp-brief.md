@@ -153,7 +153,14 @@ One definition, used by the office, the compact strip (§5) and later the 3D ren
 - They always sit at the bottom of the list, after the streaming reply, in send order.
 - **Delivered:** the bubble moves to the end of the timeline and fades to a normal message (~150 ms).
 - **Cancelled:** the bubble stays in the timeline at the point I cancelled it, muted, with "Cancelled" at the right edge. No strikethrough, so it stays readable.
-- **Esc** in the input cancels the last queued message. Esc does nothing when nothing is queued.
+- **Esc** cancels the last queued message. With nothing queued and the agent busy, Esc is **Stop** (same as the button). When idle, it does nothing. It works with focus in the chat input or on no field, never while typing in another field.
+
+**Thinking indicator**
+- At the very bottom of the list (after queued messages), while the agent is `thinking` or `working`. Hidden while `waiting` (the card is the focus then) and when idle.
+- Line 1: a playful word, picked at random once per turn from our own hardcoded list (~20, e.g. "Pondering", "Noodling", "Tinkering"), three dots that step in turn, and the turn's elapsed seconds: "Pondering... · 12s". 13px, `text-muted`. The word is the office's light register leaking into the chat; it never appears on anything that asks for a decision.
+- Line 2: the agent's current activity from `agent_state` (e.g. "editing App.tsx"), when present. 13px, `text-faint`, one line, truncated.
+- A turn starts when the agent becomes busy, or when a queued message is delivered (the backend goes straight into the next turn). No model calls, no tokens.
+- Reduced motion: the dots stay static. Not an `aria-live` region (it would announce every second); the office label announces the state.
 
 **Stopped line**
 - A neutral timeline row: a small ■ glyph + "Stopped" in `text-muted`, 13px, left-aligned like a tool line but without the sunken background.

@@ -19,6 +19,9 @@ Done-when key (from 001-mvp.md):
 - D13 a message sent while busy shows as queued and is delivered when the turn ends
 - D14 a queued message can be cancelled (button or Esc) and the agent never sees it
 - D15 Stop interrupts the agent, cancels queued messages and pending permissions, blob goes idle
+- D16 restarting the backend restores the chat and the agent remembers the conversation
+- D17 after a restart, a pending card and queued messages come back as cancelled
+- D18 New chat starts a fresh session with an empty chat
 
 ## Steps
 
@@ -100,6 +103,7 @@ Done-when key (from 001-mvp.md):
 - [ ] **12. Tool lines and permission cards**
   - Files: `frontend/src/chat/ToolLine.tsx`, `frontend/src/chat/PermissionCard.tsx`.
   - Files (continued): tool lines and cards with `outsideProject` show a visible "outside the project" warning. A card resolved as `cancelled` (Stop, project switch) shows as cancelled without buttons.
+  - Note: keep the tool name and its target visibly apart. The step 11 placeholder row ran them together ("Bashls -la …").
   - Verify:
     - ask for a small change, approve, check `git diff`;
     - deny another and see the agent say so;
@@ -111,6 +115,19 @@ Done-when key (from 001-mvp.md):
   - Files: `frontend/src/office/Office.tsx`, `frontend/src/office/Blob.tsx`, `frontend/src/office/blob.css`. Reads only `project` and `agents` from the store.
   - Verify: the step 12 flow shows thinking → working → waiting → idle; a garbage token shows error; `grep -rn "ws\|WebSocket\|applyEvent" frontend/src/office` finds nothing.
   - Moves forward: D6, D7.
+
+- [ ] **13b. Survive a backend restart**
+  - Files: a small persistence module in `backend/src/` (e.g. `saved.ts`), `backend/src/session.ts`, `backend/src/chat.ts`, `backend/src/ws.ts` (zod schema for the new client event), `shared/events.ts` (a "new chat" client event; a neutral notice chat item if no existing event fits), the chat header in `frontend/src/chat/ChatPanel.tsx`.
+  - Agent memory: save the last SDK `session_id` per project, keyed by its absolute path, under `~/.agent-office/`, and pass it as `resume` when the project opens. If resume fails, start a fresh session and add a neutral chat line saying the previous session couldn't be resumed. Check the SDK docs for how a failed `resume` shows up before mapping it.
+  - Chat display: write the chat log per project under `~/.agent-office/` as it changes, and load it when the project opens, so the snapshot restores it.
+  - At restart: a `permission_request` with no `permission_resolved` is restored with a `permission_resolved` "cancelled" (the backend restarted), and queued messages are restored as cancelled. Nothing is sent without me seeing it.
+  - New chat: a plain "New chat" control in the chat header (like `/clear`) starts a fresh SDK session and an empty chat for this project, and the saved session and log are replaced.
+  - Verify:
+    - have a short conversation, restart the backend, reload: the chat is back and a follow-up remembers it;
+    - restart with a card pending and a message queued: both come back cancelled and nothing reaches the agent;
+    - corrupt the saved session id: a fresh session starts with the neutral line;
+    - New chat: empty chat, and the agent no longer remembers.
+  - Moves forward: D16, D17, D18.
 
 - [ ] **14. Commands, README, done-when**
   - Files: `PRODUCT.md` (update Capabilities and Constraints to match the shipped MVP), `CLAUDE.md` (Commands, including `backend/spike/sdk-spike.ts` as the manual SDK sanity check and `backend/spike/write-probe.ts`, to run after every SDK upgrade because the auto-approved memory folder is inside Claude Code; see decision 009), `README.md`, `docs/plans/001-mvp.md` (tick done-when items after a full manual run, including two instances side by side).

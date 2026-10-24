@@ -41,7 +41,8 @@ MVP (see `docs/plans/001-mvp.md` for scope; build only what the current plan cov
   - streamed assistant text;
   - compact one-line tool rows, never raw JSON;
   - permission cards with the tool, the file or full command, and Approve / Deny;
-  - queued messages, dimmed with a "Queued" mark and a cancel button; Esc cancels the last one;
+  - queued messages, dimmed with a "Queued" mark and a cancel button; Esc cancels the last one, or Stops when nothing is queued;
+  - a thinking indicator at the bottom while the agent works: a playful word per turn, elapsed seconds and the current activity;
   - a neutral "Stopped" line, and a Stop control visible only while the agent is busy;
   - a plain textarea: Enter sends, Shift+Enter adds a newline;
   - a chat panel about 480px wide, with the office taking the rest.

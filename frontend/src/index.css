@@ -109,3 +109,30 @@
     transform: scaleY(0.1);
   }
 }
+
+/* Thinking indicator: the three dots after the word step in turn. With reduced motion
+   they stay as a static "...". */
+@media (prefers-reduced-motion: no-preference) {
+  .thinking-dots span {
+    animation: dot-step 1.2s infinite;
+  }
+
+  .thinking-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .thinking-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+}
+
+@keyframes dot-step {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+  }
+  30% {
+    opacity: 1;
+  }
+}

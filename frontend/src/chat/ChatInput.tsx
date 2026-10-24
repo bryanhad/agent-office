@@ -1,19 +1,46 @@
 // The input bar (brief §6): Enter sends, Shift+Enter adds a newline, Esc cancels the
-// last queued message. The send button says "Queue" while the agent is busy, since
-// that's what will happen; Stop shows only then.
+// last queued message or else stops. The send button says "Queue" while the agent is
+// busy, since that's what will happen; Stop shows only then.
 
-import { useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { StopGlyph } from "../glyphs.tsx";
 import { isBusy, useStore } from "../store.ts";
 import { send } from "../ws.ts";
 
 const MAX_LINES = 8;
 
+function isEditable(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    (target instanceof HTMLElement && target.isContentEditable)
+  );
+}
+
 export function ChatInput({ disconnected }: { disconnected: boolean }) {
   const busy = useStore((state) => isBusy(state.agents));
   const [text, setText] = useState("");
   const input = useRef<HTMLTextAreaElement>(null);
   const canSend = !disconnected && text.trim() !== "";
+
+  // Esc: cancel the last queued message; with none queued, Stop; when idle, nothing.
+  // On the document, so it also works with no field focused (e.g. after clicking
+  // Cancel), but not while typing in some other field. State is read at keypress time.
+  useEffect(() => {
+    function onEscape(event: globalThis.KeyboardEvent) {
+      if (event.key !== "Escape" || event.isComposing) return;
+      if (event.target !== input.current && isEditable(event.target)) return;
+      const { queued, agents } = useStore.getState();
+      const last = queued.at(-1);
+      if (last) send({ type: "cancel_message", id: last.id });
+      else if (isBusy(agents)) send({ type: "stop" });
+      else return;
+      event.preventDefault();
+    }
+    document.addEventListener("keydown", onEscape);
+    return () => document.removeEventListener("keydown", onEscape);
+  }, []);
 
   // Grow with the text up to MAX_LINES, then scroll inside.
   useLayoutEffect(() => {
@@ -36,13 +63,6 @@ export function ChatInput({ disconnected }: { disconnected: boolean }) {
     if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
       submit();
-    } else if (event.key === "Escape") {
-      // Read at keypress time, so it's the last one now, not at the last render.
-      const last = useStore.getState().queued.at(-1);
-      if (last) {
-        event.preventDefault();
-        send({ type: "cancel_message", id: last.id });
-      }
     }
   }
 

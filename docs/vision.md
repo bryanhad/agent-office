@@ -154,7 +154,7 @@ Colors and animations can change; the states and "waiting is the most noticeable
 - Permission requests are cards with the tool, the command or file, and **Approve** / **Deny** buttons.
 - Input at the bottom. Enter sends, Shift+Enter adds a newline.
 - **Queued messages.** A message sent while the agent is busy is held in a backend queue, not pushed into the SDK yet. It shows in the chat as queued: dimmed, with a "Queued" mark. When the current turn ends (idle), the backend delivers the next queued message, and it shows as a normal message from then on.
-  - Cancelling: each queued message has a cancel button, and Esc in the input cancels the last queued one. Cancelled means it never reached the agent.
+  - Cancelling: each queued message has a cancel button. Esc cancels the last queued one; with nothing queued and the agent busy, Esc is Stop; when idle, it does nothing. Esc works in the chat input or with no field focused, not while typing in another field. Cancelled means it never reached the agent.
   - Queued messages survive a reconnect through the snapshot.
 - **Stop.** A Stop control, visible only while the agent is busy (thinking, working or waiting), calls the query's `interrupt()`. Stop means stop everything:
   - it interrupts the current turn;
@@ -226,4 +226,4 @@ The `src` file names are a suggested starting split, not a rule.
 4. Dev server control and the floating preview iframe.
 5. 3D office with React Three Fiber: primitives first (box room, desks, capsule agents), camera with orbit, pan and zoom.
 6. Better project selection: folder browser, recent projects, and the `agent-office [dir]` CLI start (see [Project directory selection](#6-project-directory-selection)).
-7. Nicer 3D models and animations, session history, sounds, polish.
+7. Nicer 3D models and animations, browsing past sessions, sounds, polish.
