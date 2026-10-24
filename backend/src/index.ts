@@ -20,6 +20,7 @@ app.listen(config.port, HOST, (error?: NodeJS.ErrnoException) => {
     throw error;
   }
   console.log(`agent-office backend listening on http://${HOST}:${config.port}`);
+  console.log(`  token: from ${config.tokenSource}`);
   console.log(`  web port: ${config.webPort}`);
   console.log(`  model: ${config.model ?? "account default"}`);
   console.log(`  project dir: ${config.projectDir ?? "not set"}`);

@@ -33,6 +33,9 @@ function port(name: string, fallback: number): number {
   return value;
 }
 
+// Checked before loading .env, so we can tell where the token came from.
+const tokenFromShell = Boolean(optional("CLAUDE_CODE_OAUTH_TOKEN"));
+
 // Variables already set in the shell win over .env, so `PORT=3002 npm run dev` works.
 try {
   process.loadEnvFile(path.join(import.meta.dirname, "..", ".env"));
@@ -56,6 +59,8 @@ for (const name of STRIPPED_VARS) {
 }
 
 export const config = {
+  // Where the token came from, for the startup log. Never the value.
+  tokenSource: tokenFromShell ? "shell environment (overrides backend/.env)" : "backend/.env",
   port: port("PORT", 3001),
   webPort: port("WEB_PORT", 5173),
   // Validated when the server starts (step 5); only read here.
