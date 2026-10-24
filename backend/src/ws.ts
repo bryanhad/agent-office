@@ -9,7 +9,7 @@ import { agents, chatLog, onServerEvent } from "./chat.ts";
 import { isAllowedHost, isAllowedOrigin } from "./origin.ts";
 import { projectStatus } from "./project.ts";
 import { respond } from "./permissions.ts";
-import { cancelMessage, sendMessage, stop } from "./session.ts";
+import { cancelMessage, newChat, sendMessage, stop } from "./session.ts";
 
 // Big enough for a long pasted message, small enough that nobody can make us buffer much.
 // ws closes the connection on a larger frame.
@@ -32,6 +32,7 @@ const clientEventSchema: z.ZodType<ClientEvent> = z.discriminatedUnion("type", [
     id: z.string().min(1).max(200),
   }),
   z.strictObject({ type: z.literal("stop") }),
+  z.strictObject({ type: z.literal("new_chat") }),
 ]);
 
 const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_MESSAGE_BYTES });
@@ -93,6 +94,10 @@ function handle(event: ClientEvent): void {
     case "stop":
       // stop() catches its own errors.
       void stop();
+      return;
+    case "new_chat":
+      // Every window switches to the empty chat, as after opening a project.
+      void newChat().then((reset) => reset && broadcastSnapshot());
   }
 }
 

@@ -106,7 +106,8 @@ async function use(open: OpenProject): Promise<void> {
   current = open;
   console.log(`opened project "${open.project.name}" at ${open.dir}`);
   await warnAboutAllowRules(open.dir);
-  // Stops the previous project's agent, if any, and starts a fresh conversation here.
+  // Stops the previous project's agent, if any, and resumes this project's saved
+  // conversation, or starts a fresh one.
   await openSession(open.dir);
 }
 

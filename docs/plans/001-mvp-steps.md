@@ -116,12 +116,12 @@ Done-when key (from 001-mvp.md):
   - Verify: the step 12 flow shows thinking → working → waiting → idle; a garbage token shows error; `grep -rn "ws\|WebSocket\|applyEvent" frontend/src/office` finds nothing.
   - Moves forward: D6, D7.
 
-- [ ] **13b. Survive a backend restart**
+- [x] **13b. Survive a backend restart**
   - Files: a small persistence module in `backend/src/` (e.g. `saved.ts`), `backend/src/session.ts`, `backend/src/chat.ts`, `backend/src/ws.ts` (zod schema for the new client event), `shared/events.ts` (a "new chat" client event; a neutral notice chat item if no existing event fits), the chat header in `frontend/src/chat/ChatPanel.tsx`.
   - Agent memory: save the last SDK `session_id` per project, keyed by its absolute path, under `~/.agent-office/`, and pass it as `resume` when the project opens. If resume fails, start a fresh session and add a neutral chat line saying the previous session couldn't be resumed. Check the SDK docs for how a failed `resume` shows up before mapping it.
   - Chat display: write the chat log per project under `~/.agent-office/` as it changes, and load it when the project opens, so the snapshot restores it.
   - At restart: a `permission_request` with no `permission_resolved` is restored with a `permission_resolved` "cancelled" (the backend restarted), and queued messages are restored as cancelled. Nothing is sent without me seeing it.
-  - New chat: a plain "New chat" control in the chat header (like `/clear`) starts a fresh SDK session and an empty chat for this project, and the saved session and log are replaced.
+  - New chat: a plain "New chat" control in the chat header (like `/clear`) starts a fresh SDK session and an empty chat for this project, and the old chat log is archived with a timestamp (browsing it is out of scope). Only available while the agent is idle (or in error) with nothing queued or pending.
   - Verify:
     - have a short conversation, restart the backend, reload: the chat is back and a follow-up remembers it;
     - restart with a card pending and a message queued: both come back cancelled and nothing reaches the agent;

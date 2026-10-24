@@ -1,7 +1,8 @@
-// The chat log and the agents, in memory only (no history across restarts in the MVP).
-// Every change goes through here and on to the listeners, so ws.ts can broadcast it and
-// build the snapshot without the session knowing about sockets.
+// The chat log and the agents. Every change goes through here and on to the listeners,
+// so ws.ts can broadcast it and session.ts can save it (saved.ts) without either knowing
+// about the other.
 
+import { randomUUID } from "node:crypto";
 import type { Agent, AgentState, ChatEvent, MessageStatusEvent, ServerEvent, UserMessageEvent } from "@agent-office/shared";
 
 const MANAGER = { id: "manager", role: "Manager" } as const;
@@ -75,4 +76,27 @@ export function resetChat(): void {
   chat = [];
   queued = [];
   manager = { ...MANAGER, state: "idle" };
+}
+
+// Load a saved log after a restart. Nothing in it may reach the agent unseen: queued
+// messages come back cancelled, and a request that was still pending comes back resolved
+// "cancelled" (its canUseTool call died with the old process). A notice says why.
+// Publishes nothing: the caller sends a snapshot.
+export function restoreChat(log: ChatEvent[]): void {
+  const resolved = new Set(log.filter((event) => event.type === "permission_resolved").map((event) => event.id));
+  const requests = log.filter((event) => event.type === "permission_request" && !resolved.has(event.id));
+  let messages = 0;
+  chat = log.map((event) => {
+    if (event.type !== "user_message" || event.status !== "queued") return event;
+    messages++;
+    return { ...event, status: "cancelled" };
+  });
+  for (const request of requests) chat.push({ type: "permission_resolved", id: request.id, decision: "cancelled" });
+
+  const cancelled: string[] = [];
+  if (requests.length > 0) cancelled.push(requests.length === 1 ? "the pending request" : "the pending requests");
+  if (messages > 0) cancelled.push(messages === 1 ? "the queued message" : "the queued messages");
+  if (cancelled.length === 0) return;
+  const verb = requests.length + messages === 1 ? "was" : "were";
+  chat.push({ type: "notice", id: randomUUID(), text: `The backend restarted, so ${cancelled.join(" and ")} ${verb} cancelled.` });
 }

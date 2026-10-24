@@ -120,6 +120,8 @@ function Item({ item }: { item: ChatItem }) {
           Stopped
         </p>
       );
+    case "notice":
+      return <p className="px-3 text-label text-text-muted">{item.text}</p>;
   }
 }
 

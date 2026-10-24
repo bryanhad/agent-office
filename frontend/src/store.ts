@@ -29,7 +29,8 @@ export type ChatItem =
       decision?: PermissionResolvedEvent["decision"];
     }
   | { kind: "error"; id: string; message: string }
-  | { kind: "stopped"; id: string };
+  | { kind: "stopped"; id: string }
+  | { kind: "notice"; id: string; text: string };
 
 // Everything the server's events decide.
 export interface ServerState {
@@ -137,6 +138,9 @@ export function applyEvent<S extends ServerState>(state: S, event: ServerEvent):
 
     case "stopped":
       return append(state, { kind: "stopped", id: event.id });
+
+    case "notice":
+      return append(state, { kind: "notice", id: event.id, text: event.text });
   }
 }
 

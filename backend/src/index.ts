@@ -5,9 +5,19 @@ import express from "express";
 import type { ApiError, OpenProjectRequest, ProjectResponse } from "@agent-office/shared";
 import { requireAllowedHost, requireAllowedOrigin } from "./origin.ts";
 import { openFromConfig, openFromRequest, projectStatus } from "./project.ts";
+import { flushSaveSync } from "./saved.ts";
 import { attachWebSocket, broadcastSnapshot } from "./ws.ts";
 
 const HOST = "127.0.0.1";
+
+// Chat saves wait a moment to batch streamed text; write the last one before exiting, so a
+// restart (Ctrl+C, or tsx watch reloading) doesn't lose it.
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.on(signal, () => {
+    flushSaveSync();
+    process.exit(0);
+  });
+}
 
 await openFromConfig(config.projectDir);
 

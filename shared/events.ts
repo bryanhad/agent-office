@@ -53,7 +53,8 @@ export interface UserMessageEvent {
   type: "user_message";
   id: string;
   text: string;
-  // "cancelled": it never reached the agent. In the snapshot this is the latest status.
+  // "cancelled": it never reached the agent (I cancelled it, pressed Stop, or the backend
+  // restarted while it was queued). In the snapshot this is the latest status.
   status: "queued" | "delivered" | "cancelled";
 }
 
@@ -117,8 +118,8 @@ export interface PermissionRequestEvent {
 export interface PermissionResolvedEvent {
   type: "permission_resolved";
   id: string;
-  // "cancelled": I pressed Stop, or the query was aborted while waiting (e.g. another
-  // project was opened).
+  // "cancelled": I pressed Stop, the query was aborted while waiting (e.g. another
+  // project was opened), or the backend restarted while it was pending.
   decision: "approved" | "denied" | "timed_out" | "cancelled";
 }
 
@@ -152,8 +153,19 @@ export interface StoppedEvent {
   id: string;
 }
 
-// Events that make up the chat. The backend keeps them in memory, in order, and
-// replays them in the snapshot. Consecutive deltas with the same id may be merged.
+// A neutral line in the chat for something the backend did on its own, e.g. the
+// previous session couldn't be resumed, or a restart cancelled what was pending.
+// Never an error, and never shown in a state color.
+// Source: the backend (restoring a saved chat, a failed `resume`), not the SDK.
+export interface NoticeEvent {
+  type: "notice";
+  id: string;
+  text: string;
+}
+
+// Events that make up the chat. The backend keeps them in order, saves them per project
+// under ~/.agent-office/, and replays them in the snapshot. Consecutive deltas with the
+// same id may be merged.
 export type ChatEvent =
   | UserMessageEvent
   | AssistantTextEvent
@@ -161,7 +173,8 @@ export type ChatEvent =
   | PermissionRequestEvent
   | PermissionResolvedEvent
   | ErrorEvent
-  | StoppedEvent;
+  | StoppedEvent
+  | NoticeEvent;
 
 // Sent on every WebSocket connect, so a reload restores everything.
 // A pending request is a `permission_request` in `chat` with no matching
@@ -210,7 +223,14 @@ export interface StopEvent {
   type: "stop";
 }
 
-export type ClientEvent = SendMessageEvent | PermissionResponseEvent | CancelMessageEvent | StopEvent;
+// Start a fresh SDK session and an empty chat for this project. The old chat log is
+// archived. Ignored unless the agent is idle (or in error) with nothing queued or
+// pending. Every window switches through the snapshot that follows.
+export interface NewChatEvent {
+  type: "new_chat";
+}
+
+export type ClientEvent = SendMessageEvent | PermissionResponseEvent | CancelMessageEvent | StopEvent | NewChatEvent;
 
 // ---------- HTTP ----------
 
