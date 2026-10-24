@@ -1,14 +1,51 @@
 // Must stay the first import: it cleans the environment before anything else loads.
 import { config } from "./env.ts";
 import express from "express";
+import type { ApiError, OpenProjectRequest, ProjectResponse } from "@agent-office/shared";
+import { requireAllowedOrigin } from "./origin.ts";
+import { openFromConfig, openFromRequest, projectStatus } from "./project.ts";
 
 const HOST = "127.0.0.1";
+
+await openFromConfig(config.projectDir);
 
 const app = express();
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
+
+app.get("/api/project", (_req, res) => {
+  const body: ProjectResponse = projectStatus();
+  res.json(body);
+});
+
+// Origin first, so a refused page never gets as far as body parsing.
+app.post("/api/project", requireAllowedOrigin, express.json({ limit: "10kb" }), async (req, res) => {
+  const { path } = (req.body ?? {}) as Partial<OpenProjectRequest>;
+  if (typeof path !== "string") {
+    const body: ApiError = { error: 'Send a JSON body like {"path": "~/projects/my-app"}.' };
+    res.status(400).json(body);
+    return;
+  }
+
+  const result = await openFromRequest(path);
+  if (!result.ok) {
+    const body: ApiError = { error: result.error };
+    res.status(result.httpStatus).json(body);
+    return;
+  }
+  const body: ProjectResponse = result.status;
+  res.json(body);
+});
+
+// Answer errors as JSON instead of Express's HTML page. Malformed JSON bodies land here.
+app.use(((error, _req, res, _next) => {
+  const status = typeof error?.status === "number" && error.status < 500 ? error.status : 500;
+  if (status === 500) console.error(error);
+  const body: ApiError = { error: status === 500 ? "Something went wrong in the backend." : "Invalid request body." };
+  res.status(status).json(body);
+}) satisfies express.ErrorRequestHandler);
 
 // Express 5 calls this callback on listen errors too, so check for one first.
 app.listen(config.port, HOST, (error?: NodeJS.ErrnoException) => {

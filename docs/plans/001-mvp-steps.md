@@ -39,7 +39,7 @@ Done-when key (from 001-mvp.md):
   - Verify: `npx tsc -p shared` and `npx tsc --noEmit -p backend` pass.
   - Moves forward: groundwork for all.
 
-- [ ] **5. Project endpoint and `PROJECT_DIR`**
+- [x] **5. Project endpoint and `PROJECT_DIR`**
   - Files: `backend/src/project.ts` (expand `~`, `path.resolve`, must be a directory, name from `package.json` falling back to the folder name; warn listing the rules if the project's `.claude/settings.json` has `permissions.allow`), `backend/src/origin.ts` (allow only `http://127.0.0.1:${WEB_PORT}` and `http://localhost:${WEB_PORT}`), `backend/src/index.ts` (`GET /api/project` returns the current project and config case; `POST /api/project` opens one, refused while pinned; `PROJECT_DIR` validated at startup: valid → opened and pinned, invalid → keep running and report the reason).
   - Verify: curl `POST` with a real folder, `~/nope`, a file, and a bad `Origin`; start with a valid `PROJECT_DIR` and check `GET` reports pinned and `POST` is refused; start with an invalid one and check `GET` reports the reason and `POST` still works; open a project with an allow rule and see the warning.
   - Moves forward: D2, D10, D11 (backend).
