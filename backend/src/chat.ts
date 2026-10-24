@@ -45,12 +45,6 @@ export function agents(): Agent[] {
   return [manager];
 }
 
-// Request ids with no `permission_resolved` yet: the cards a reload would show again.
-export function unresolvedRequests(): string[] {
-  const resolved = new Set(chat.flatMap((e) => (e.type === "permission_resolved" ? [e.id] : [])));
-  return chat.flatMap((e) => (e.type === "permission_request" && !resolved.has(e.id) ? [e.id] : []));
-}
-
 // A new project starts a new conversation. Publishes nothing: the caller sends a snapshot.
 export function resetChat(): void {
   chat = [];

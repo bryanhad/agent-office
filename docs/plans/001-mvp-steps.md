@@ -57,7 +57,7 @@ Done-when key (from 001-mvp.md):
   - Verify (wscat): "what does this project do?" streams `assistant_text` with thinking → idle; the backend log shows the model; a follow-up remembers; switch project mid-turn and see the old query stop; with a garbage token see `error` and `agent_state: error`, the backend doesn't crash, and a new message moves to thinking.
   - Moves forward: D3, D6 (error), D8 (backend).
 
-- [ ] **8. Permissions**
+- [x] **8. Permissions**
   - Files: `backend/src/permissions.ts` (pending requests keyed by `requestId`, 10-minute timeout that tells the agent it timed out, cleanup on `signal` abort, `PERMISSION_TIMEOUT_MS` override for testing), `session.ts`, `ws.ts`.
   - Verify (wscat): ask for a file change → `permission_request` + `waiting`; approve → file changes; deny → agent says so; reconnect while pending → snapshot has it and approve works; `PERMISSION_TIMEOUT_MS=10000` → auto-deny.
   - Moves forward: D4, D5, D9 (backend).

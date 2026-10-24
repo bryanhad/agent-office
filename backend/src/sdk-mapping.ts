@@ -13,7 +13,7 @@ export type Output = { kind: "chat"; event: ChatEvent } | { kind: "state"; state
 // The SDK's stand-in reply for an API error (finding 4). Its text repeats in the result.
 const SYNTHETIC_MODEL = "<synthetic>";
 
-const FILE_TOOLS = new Set(["Read", "Edit", "Write"]);
+export const FILE_TOOLS = new Set(["Read", "Edit", "Write"]);
 
 const VERBS: Record<string, string> = {
   Read: "reading",

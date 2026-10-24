@@ -114,7 +114,10 @@ See [decision 008](decisions/008-pending-permissions-survive-reload.md).
 
 - The backend keeps pending requests keyed by id.
 - On every WebSocket connect, the backend sends a state snapshot including any pending request, so the approve card reappears and the blob returns to `waiting`.
-- If nobody answers within 10 minutes, the request is denied and the agent is told it timed out.
+- If nobody answers within 10 minutes, the request is denied and the agent is told it timed out (`PERMISSION_TIMEOUT_MS` shortens this for testing).
+- Opening another project, or the query failing, cancels pending requests (`permission_resolved` "cancelled").
+- Only the first answer counts: a second one (two windows both clicking) or one for an unknown request is ignored and logged.
+- `options.suggestions` is never applied.
 - Never auto-approve.
 
 ## 8. Design

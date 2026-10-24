@@ -34,6 +34,7 @@ Trimming: `…` marks removed fields or array items. The target folder is shown 
     - The memory folder is keyed by git repo (or by folder outside a repo), shared by all worktrees and subfolders, and shared with CLI sessions in the same folder: a memory written here would be loaded into my own Claude Code sessions there.
     - The `file_path` input can be `~/…` or relative, not always absolute.
     - `backend/spike/write-probe.ts` repeats the check; run it after every SDK upgrade.
+22. **Parallel tool calls ask one at a time.** In step 8, two parallel `Write` calls in one assistant message produced two `tool_use` lines at once, but `canUseTool` for the second came only after the first was answered. `permissions.ts` still allows several pending requests and stays `waiting` until all are settled, in case a version asks concurrently.
 
 ## Samples
 

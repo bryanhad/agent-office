@@ -33,6 +33,15 @@ function port(name: string, fallback: number): number {
   return value;
 }
 
+// Milliseconds, for PERMISSION_TIMEOUT_MS. Only shortened for testing.
+function duration(name: string, fallback: number): number {
+  const raw = optional(name);
+  if (raw === undefined) return fallback;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 1) fail(`${name} must be a positive number of milliseconds, got "${raw}".`);
+  return value;
+}
+
 // Checked before loading .env, so we can tell where the token came from.
 const tokenFromShell = Boolean(optional("CLAUDE_CODE_OAUTH_TOKEN"));
 
@@ -67,4 +76,6 @@ export const config = {
   projectDir: optional("PROJECT_DIR"),
   // Unset means the account's default model.
   model: optional("MODEL"),
+  // How long a permission request waits before it's denied (decision 008): 10 minutes.
+  permissionTimeoutMs: duration("PERMISSION_TIMEOUT_MS", 10 * 60 * 1000),
 };

@@ -8,6 +8,7 @@ import type { ClientEvent, ServerEvent, SnapshotEvent } from "@agent-office/shar
 import { agents, chatLog, onServerEvent } from "./chat.ts";
 import { isAllowedOrigin } from "./origin.ts";
 import { projectStatus } from "./project.ts";
+import { respond } from "./permissions.ts";
 import { sendMessage } from "./session.ts";
 
 // Big enough for a long pasted message, small enough that nobody can make us buffer much.
@@ -80,8 +81,7 @@ function handle(event: ClientEvent): void {
   if (event.type === "send_message") {
     sendMessage(event.text);
   } else {
-    // Acted on once step 8 adds the pending-request map.
-    console.log(`received permission_response (${event.decision}); approval not wired yet, ignoring`);
+    respond(event.id, event.decision);
   }
 }
 

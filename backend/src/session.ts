@@ -5,10 +5,11 @@
 
 import { randomUUID } from "node:crypto";
 import { realpath } from "node:fs/promises";
-import { query, type CanUseTool, type Options, type Query, type SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
+import { query, type Options, type Query, type SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import { agentOptions } from "./agent-options.ts";
-import { addChat, resetChat, setAgentState, unresolvedRequests } from "./chat.ts";
+import { addChat, resetChat, setAgentState } from "./chat.ts";
 import { MessageQueue } from "./message-queue.ts";
+import { cancelAll, createCanUseTool, hasPending } from "./permissions.ts";
 import { createMapper } from "./sdk-mapping.ts";
 
 // One running query() and the things needed to feed and stop it.
@@ -32,15 +33,10 @@ interface Session {
 
 let session: Session | null = null;
 
-// Placeholder until step 8 adds the approve/deny cards. Read, Glob, Grep and read-only
-// commands never get here: permissionMode "default" allows them without asking.
-const denyEverything: CanUseTool = async (toolName) => {
-  console.log(`denied ${toolName}: approval UI not wired yet`);
-  return { behavior: "deny", message: "approval UI not wired yet" };
-};
-
+// Read, Glob, Grep and read-only commands never reach canUseTool: permissionMode
+// "default" allows them without asking.
 function options(s: Session, abort: AbortController): Options {
-  return { ...agentOptions(s.dir, abort, denyEverything), ...(s.sessionId && { resume: s.sessionId }) };
+  return { ...agentOptions(s.dir, abort, createCanUseTool(s.dirs)), ...(s.sessionId && { resume: s.sessionId }) };
 }
 
 function start(s: Session): Run {
@@ -72,13 +68,16 @@ async function consume(s: Session, run: Run): Promise<void> {
       }
       for (const out of map(msg)) {
         if (out.kind === "chat") addChat(out.event);
-        else setAgentState(out.state, out.activity);
+        // While a request waits, it owns the state: a parallel tool_use arriving now
+        // would otherwise turn `waiting` into `working`. Errors still show.
+        else if (!hasPending() || out.state === "error") setAgentState(out.state, out.activity);
       }
     }
   } catch (error) {
     // Query error (decision 009): the loop threw, e.g. the Claude Code process died.
     if (!isCurrent()) return;
     const message = error instanceof Error ? error.message : String(error);
+    cancelAll();
     console.error(`error: agent query stopped: ${message}`);
     addChat({ type: "error", id: randomUUID(), message });
     setAgentState("error");
@@ -87,11 +86,11 @@ async function consume(s: Session, run: Run): Promise<void> {
   }
 }
 
-// Stop the running query and wait until it has. Pending requests are reported as
-// cancelled first; step 8's handler also denies them when the SDK aborts its signal.
+// Stop the running query and wait until it has. Pending requests are cancelled first,
+// so their permission_resolved lands before the chat is reset.
 async function close(): Promise<void> {
   if (!session) return;
-  for (const id of unresolvedRequests()) addChat({ type: "permission_resolved", id, decision: "cancelled" });
+  cancelAll();
   const run = session.run;
   session = null;
   if (!run) return;
