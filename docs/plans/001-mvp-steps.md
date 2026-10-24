@@ -111,7 +111,7 @@ Done-when key (from 001-mvp.md):
     - Stop while a card is showing → card shows cancelled.
   - Moves forward: D4, D5, D9, D15.
 
-- [ ] **13. Office and blob**
+- [x] **13. Office and blob**
   - Files: `frontend/src/office/Office.tsx`, `frontend/src/office/Blob.tsx`, `frontend/src/office/blob.css`. Reads only `project` and `agents` from the store.
   - Verify: the step 12 flow shows thinking → working → waiting → idle; a garbage token shows error; `grep -rn "ws\|WebSocket\|applyEvent" frontend/src/office` finds nothing.
   - Moves forward: D6, D7.

@@ -84,35 +84,6 @@
   }
 }
 
-/* Idle blob face: slow breathing and a blink every ~6 s. With reduced motion it stays
-   still (brief §3), which is what you get when these rules don't apply. */
-@media (prefers-reduced-motion: no-preference) {
-  .blob-idle {
-    animation: blob-breathe 4s ease-in-out infinite;
-  }
-
-  .blob-idle .blob-eye {
-    animation: blob-blink 6s infinite;
-  }
-}
-
-@keyframes blob-breathe {
-  50% {
-    transform: scale(1.03);
-  }
-}
-
-@keyframes blob-blink {
-  0%,
-  96%,
-  100% {
-    transform: scaleY(1);
-  }
-  98% {
-    transform: scaleY(0.1);
-  }
-}
-
 /* Thinking indicator: the three dots after the word step in turn. With reduced motion
    they stay as a static "...". */
 @media (prefers-reduced-motion: no-preference) {

@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { openProject } from "./api.ts";
-import { BlobFace } from "./BlobFace.tsx";
 import { CrossGlyph } from "./glyphs.tsx";
+import { BlobBody } from "./office/Blob.tsx";
 
 interface Props {
   // PROJECT_DIR is set but invalid; the reason comes from the backend.
@@ -45,7 +45,7 @@ export function StartScreen({ configError, unreachable }: Props) {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 py-10">
       <div className="flex w-full max-w-[560px] flex-col items-center rounded-card border border-line bg-surface px-6 py-10 sm:px-12">
-        <BlobFace />
+        <BlobBody state="idle" className="[--blob-size:56px]" />
         <h1 className="mt-4 text-display font-semibold">Agent Office</h1>
         <p className="mt-1 text-text-muted">Which project should the agents work in?</p>
 

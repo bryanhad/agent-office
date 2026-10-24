@@ -1,0 +1,243 @@
+/* The blob's look per state (brief §3). Plain CSS, like every keyframe (decision 011).
+   Everything scales from --blob-size, set by the parent (office floor, strip, start screen).
+
+   Without motion, every state still differs by its glyph, label and eyes, and waiting keeps
+   a steady amber ring: the ring is the base style, and only the pulse is motion. */
+
+/* The state's three tokens under one name, for the blob and for anything else drawn for
+   that state (the office label, the strip). */
+[data-state="idle"] {
+  --state-body: var(--color-idle-body);
+  --state-strong: var(--color-idle-strong);
+  --state-soft: var(--color-idle-soft);
+}
+[data-state="thinking"] {
+  --state-body: var(--color-thinking-body);
+  --state-strong: var(--color-thinking-strong);
+  --state-soft: var(--color-thinking-soft);
+}
+[data-state="working"] {
+  --state-body: var(--color-working-body);
+  --state-strong: var(--color-working-strong);
+  --state-soft: var(--color-working-soft);
+}
+[data-state="waiting"] {
+  --state-body: var(--color-waiting-body);
+  --state-strong: var(--color-waiting-strong);
+  --state-soft: var(--color-waiting-soft);
+}
+[data-state="error"] {
+  --state-body: var(--color-error-body);
+  --state-strong: var(--color-error-strong);
+  --state-soft: var(--color-error-soft);
+}
+
+.blob {
+  --size: var(--blob-size, 150px);
+  --ring: color-mix(in srgb, var(--color-waiting-body) 35%, transparent);
+  position: relative;
+  width: var(--size);
+  height: var(--size);
+  flex-shrink: 0;
+}
+
+.blob-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--state-strong) 40%, transparent);
+  background: var(--state-body);
+  transform-origin: 50% 100%;
+}
+
+/* ---------- Eyes ---------- */
+
+.blob-eyes {
+  display: flex;
+  gap: calc(var(--size) * 0.16);
+}
+
+.blob-eye {
+  position: relative;
+  width: calc(var(--size) * 0.1);
+  height: calc(var(--size) * 0.15);
+  border-radius: 999px;
+  background: var(--color-text);
+}
+
+/* Where the eyes look: up while thinking, down at the desk while working, toward the chat
+   (on the right) while waiting. */
+[data-state="thinking"] .blob-eyes {
+  transform: translate(calc(var(--size) * 0.03), calc(var(--size) * -0.1));
+}
+[data-state="working"] .blob-eyes {
+  transform: translateY(calc(var(--size) * 0.1));
+}
+[data-state="waiting"] .blob-eyes {
+  transform: translateX(calc(var(--size) * 0.1));
+}
+
+/* Error: each eye becomes a small × made of two crossed bars. */
+[data-state="error"] .blob-eye {
+  width: calc(var(--size) * 0.13);
+  height: calc(var(--size) * 0.13);
+  background: transparent;
+}
+[data-state="error"] .blob-eye::before,
+[data-state="error"] .blob-eye::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -15%;
+  width: 130%;
+  height: max(2px, calc(var(--size) * 0.03));
+  margin-top: max(-1px, calc(var(--size) * -0.015));
+  border-radius: 999px;
+  background: var(--color-text);
+  transform: rotate(45deg);
+}
+[data-state="error"] .blob-eye::after {
+  transform: rotate(-45deg);
+}
+
+/* ---------- Bubble ---------- */
+
+/* The same circle in every state: the soft tone with the glyph in strong. */
+.blob-bubble {
+  --bubble: max(20px, calc(var(--size) * 0.3));
+  position: absolute;
+  left: 76%;
+  bottom: 76%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--bubble);
+  height: var(--bubble);
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--state-strong) 25%, transparent);
+  background: var(--state-soft);
+  color: var(--state-strong);
+}
+
+.blob-bubble svg {
+  width: 60%;
+  height: 60%;
+}
+
+/* Waiting: the only filled bubble, and larger. Ink on amber, for contrast. */
+[data-state="waiting"] .blob-bubble {
+  --bubble: max(24px, calc(var(--size) * 0.4));
+  border-color: var(--color-waiting-strong);
+  background: var(--color-waiting-body);
+  color: var(--color-text);
+}
+
+/* Waiting's steady amber ring: always there, motion or not. */
+[data-state="waiting"] .blob-body {
+  box-shadow: 0 0 0 max(4px, calc(var(--size) * 0.07)) var(--ring);
+}
+
+/* ---------- Motion ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Color crossfades between states; the label beside it swaps instantly. */
+  .blob-body,
+  .blob-bubble {
+    transition:
+      background-color 200ms,
+      border-color 200ms,
+      color 200ms;
+  }
+  .blob-eyes {
+    transition: transform 200ms;
+  }
+
+  [data-state="idle"] .blob-body {
+    animation: blob-breathe 4s ease-in-out infinite;
+  }
+  [data-state="idle"] .blob-eye {
+    animation: blob-blink 6s infinite;
+  }
+
+  [data-state="thinking"] .blob-body {
+    animation: blob-breathe 1.6s ease-in-out infinite;
+  }
+  [data-state="thinking"] .glyph-dot {
+    animation: dot-step 1.2s infinite;
+  }
+  [data-state="thinking"] .glyph-dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  [data-state="thinking"] .glyph-dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  [data-state="working"] .blob-body {
+    animation: blob-bounce 0.6s ease-in-out infinite;
+  }
+
+  [data-state="waiting"] .blob-body {
+    animation: blob-ring-pulse 1.4s ease-in-out infinite;
+  }
+  [data-state="waiting"] .blob-bubble {
+    animation: blob-bob 1.4s ease-in-out infinite;
+  }
+  /* The strip keeps its ring steady; the bubble still bobs. */
+  [data-compact][data-state="waiting"] .blob-body {
+    animation: none;
+  }
+
+  /* Plays once each time the state becomes error: a new animation name restarts it. */
+  [data-state="error"] .blob-body {
+    animation: blob-shake 0.4s ease-in-out 1;
+  }
+}
+
+@keyframes blob-breathe {
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+@keyframes blob-blink {
+  0%,
+  96%,
+  100% {
+    transform: scaleY(1);
+  }
+  98% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes blob-bounce {
+  50% {
+    transform: translateY(calc(var(--size) * -0.04));
+  }
+}
+
+@keyframes blob-ring-pulse {
+  50% {
+    box-shadow: 0 0 0 max(7px, calc(var(--size) * 0.13)) color-mix(in srgb, var(--color-waiting-body) 15%, transparent);
+  }
+}
+
+@keyframes blob-bob {
+  50% {
+    transform: translateY(calc(var(--size) * -0.04));
+  }
+}
+
+@keyframes blob-shake {
+  20%,
+  60% {
+    transform: translateX(calc(var(--size) * -0.04));
+  }
+  40%,
+  80% {
+    transform: translateX(calc(var(--size) * 0.04));
+  }
+}
