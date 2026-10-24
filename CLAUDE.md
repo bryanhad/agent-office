@@ -10,6 +10,7 @@ Pre-MVP. Working on [docs/plans/001-mvp.md](docs/plans/001-mvp.md).
 
 - Frontend: React + Vite + TypeScript, Zustand for state
 - Office view: plain DOM + CSS blobs for the MVP (3D with React Three Fiber later)
+- Styling: Tailwind CSS v4 (Vite plugin); design tokens in the `@theme` in `frontend/src/index.css`, blob animations as plain CSS `@keyframes` (decision 011)
 - Backend: Node + TypeScript, Express with `ws` on the same HTTP server
 - Agent engine: `@anthropic-ai/claude-agent-sdk` (TypeScript)
 

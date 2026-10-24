@@ -59,6 +59,7 @@ This is what lets the MVP renderer (CSS blobs) be replaced later by a 3D rendere
 | --- | --- |
 | Frontend | React + Vite + TypeScript |
 | State | Zustand |
+| Styling | Tailwind CSS v4, design tokens in its theme (see [decision 011](decisions/011-tailwind-styling.md)) |
 | Office view (MVP) | Plain DOM + CSS "blobs" (see [Design](#8-design)) |
 | Office view (later) | React Three Fiber + drei, 3D with orbit, pan and zoom |
 | Chat `@` mentions | Tiptap Mention extension (later; plain textarea for MVP) |

@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+/* Design tokens from docs/design/mvp-brief.md §2 (decision 011). The default colors,
+   font sizes, weights and shadows are cleared, so only the brief's roles exist as
+   utilities: a color that isn't a neutral or a state can't sneak in. */
+@theme {
+  --color-*: initial;
+  --text-*: initial;
+  --font-weight-*: initial;
+  --shadow-*: initial;
+
+  /* Neutrals */
+  --color-white: #ffffff;
+  --color-bg: #f4f4f6;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f6f6f7;
+  --color-office-ground: #eceae4;
+  --color-office-wall: #e2dfd7;
+  --color-desk: #bdb6a8;
+  --color-text: #18181b;
+  --color-text-muted: #52525b;
+  --color-text-faint: #a1a1aa;
+  --color-line: #e4e4e7;
+
+  /* States: body = blob fill, strong = text and rings on white, soft = tinted backgrounds */
+  --color-idle-body: #b4a9f8;
+  --color-idle-strong: #5e4ad6;
+  --color-idle-soft: #f1eefe;
+  --color-thinking-body: #8e7df6;
+  --color-thinking-strong: #4b36d1;
+  --color-thinking-soft: #ece8fe;
+  --color-working-body: #4cb676;
+  --color-working-strong: #1e7543;
+  --color-working-soft: #e6f5ec;
+  --color-waiting-body: #f5a524;
+  --color-waiting-strong: #9a4a06;
+  --color-waiting-soft: #fff3dd;
+  --color-error-body: #e5484d;
+  --color-error-strong: #b42318;
+  --color-error-soft: #fdecec;
+
+  /* Type */
+  --font-sans: system-ui, -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --text-meta: 12px;
+  --text-meta--line-height: 1.4;
+  --text-label: 13px;
+  --text-label--line-height: 1.4;
+  --text-body: 15px;
+  --text-body--line-height: 1.55;
+  --text-title: 17px;
+  --text-title--line-height: 1.35;
+  --text-display: 22px;
+  --text-display--line-height: 1.25;
+  --text-plaque: 28px;
+  --text-plaque--line-height: 1.2;
+  --font-weight-normal: 400;
+  --font-weight-semibold: 600;
+
+  /* Shape and space */
+  --spacing: 4px;
+  --radius-row: 8px;
+  --radius-card: 12px;
+  --radius-panel: 16px;
+}
+
+@layer base {
+  body {
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Ink, not a color, on every control. */
+  :focus-visible {
+    outline: 2px solid var(--color-text);
+    outline-offset: 2px;
+  }
+}
+
+/* Idle blob face: slow breathing and a blink every ~6 s. With reduced motion it stays
+   still (brief §3), which is what you get when these rules don't apply. */
+@media (prefers-reduced-motion: no-preference) {
+  .blob-idle {
+    animation: blob-breathe 4s ease-in-out infinite;
+  }
+
+  .blob-idle .blob-eye {
+    animation: blob-blink 6s infinite;
+  }
+}
+
+@keyframes blob-breathe {
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+@keyframes blob-blink {
+  0%,
+  96%,
+  100% {
+    transform: scaleY(1);
+  }
+  98% {
+    transform: scaleY(0.1);
+  }
+}

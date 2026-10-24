@@ -1,18 +1,35 @@
+import { StartScreen } from "./StartScreen.tsx";
 import { useStore } from "./store.ts";
 
-// Placeholder until the start screen and the two-panel layout: proves the proxy and
-// the WebSocket work by showing the snapshot the backend sends on connect.
+// Chooses the screen from store state only. The snapshot keeps `project` current in
+// every tab, so opening a project anywhere switches all of them.
 export function App() {
   const connection = useStore((state) => state.connection);
-  const snapshot = useStore((state) => state.snapshot);
+  const status = useStore((state) => state.project);
+  const unreachable = connection === "closed";
+
+  // No snapshot yet: blank while the first connect is in flight (milliseconds on
+  // localhost), the start screen with the unreachable line once it has failed.
+  if (!status) return unreachable ? <StartScreen unreachable /> : null;
+
+  // Always true when pinned, so a pinned instance never shows the start screen.
+  if (status.project) return <MainPlaceholder name={status.project.name} />;
 
   return (
-    <main style={{ fontFamily: "system-ui, sans-serif", padding: 24 }}>
-      <h1>Agent Office</h1>
-      <p>WebSocket: {connection}</p>
-      <pre style={{ background: "#f4f4f4", padding: 12, overflow: "auto" }}>
-        {snapshot ? JSON.stringify(snapshot, null, 2) : "Waiting for the snapshot…"}
-      </pre>
+    <StartScreen
+      configError={status.config === "invalid" ? status.configError : undefined}
+      unreachable={unreachable}
+    />
+  );
+}
+
+// Stands in for the office and chat until step 11.
+function MainPlaceholder({ name }: { name: string }) {
+  return (
+    <main className="flex min-h-screen items-center justify-center px-4">
+      <p className="text-text-muted">
+        <span className="font-mono text-text">{name}</span> is open. The office and chat come in step 11.
+      </p>
     </main>
   );
 }

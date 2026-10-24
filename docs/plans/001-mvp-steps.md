@@ -81,8 +81,8 @@ Done-when key (from 001-mvp.md):
   - Verify: `npm run dev`, open `http://127.0.0.1:5173`; `PORT=3002 WEB_PORT=5174 npm run dev` serves on 5174 and proxies to 3002; `curl -H 'Host: evil.example:3001' 127.0.0.1:3001/api/project` is refused while the app still works through the proxy.
   - Moves forward: D12.
 
-- [ ] **10. Start screen**
-  - Files: `frontend/src/StartScreen.tsx`, `frontend/src/store.ts` (project slice), `frontend/src/App.tsx`. Uses `GET /api/project`: none → start screen; pinned → straight to the main screen, no way to switch; invalid → start screen with "The project folder set in the backend config isn't valid: <reason>" and a working path input.
+- [x] **10. Start screen**
+  - Files: `frontend/src/StartScreen.tsx`, `frontend/src/store.ts` (project slice), `frontend/src/App.tsx`. The project status comes from the WebSocket snapshot (sent on connect and broadcast after every successful `POST /api/project`, so every tab switches), not `GET /api/project`: none → start screen; pinned → straight to the main screen, no way to switch; invalid → start screen with "The project folder set in the backend config isn't valid: <reason>" and a working path input.
   - Verify: `~/nope` shows the inline error and a real folder opens; repeat with a valid and an invalid `PROJECT_DIR`.
   - Moves forward: D2, D10, D11.
 
