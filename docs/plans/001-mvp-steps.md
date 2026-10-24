@@ -100,7 +100,7 @@ Done-when key (from 001-mvp.md):
     - Stop mid-turn → idle.
   - Moves forward: D3, D8, D13, D14, D15.
 
-- [ ] **12. Tool lines and permission cards**
+- [x] **12. Tool lines and permission cards**
   - Files: `frontend/src/chat/ToolLine.tsx`, `frontend/src/chat/PermissionCard.tsx`.
   - Files (continued): tool lines and cards with `outsideProject` show a visible "outside the project" warning. A card resolved as `cancelled` (Stop, project switch) shows as cancelled without buttons.
   - Note: keep the tool name and its target visibly apart. The step 11 placeholder row ran them together ("Bashls -la …").

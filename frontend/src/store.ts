@@ -56,6 +56,11 @@ export function isBusy(agents: Agent[]): boolean {
   return agents.some((agent) => agent.state === "thinking" || agent.state === "working" || agent.state === "waiting");
 }
 
+// A permission card is waiting for my answer.
+export function hasPending(timeline: ChatItem[]): boolean {
+  return timeline.some((item) => item.kind === "permission" && !item.decision);
+}
+
 // The next state after one server event. Pure: no mutation, no I/O, and the same object
 // back when the event changes nothing, so it can be reasoned about (and tested) one event
 // at a time. A snapshot replays its chat through this same function, so a reload can't
@@ -106,9 +111,17 @@ export function applyEvent<S extends ServerState>(state: S, event: ServerEvent):
       return append(state, { kind: "tool", ...rest });
     }
 
+    // The card takes the place of its own tool line: the SDK sends the tool_use just
+    // before asking, and the resolved card collapses back into that same row with the
+    // outcome, so one call is one row. Appended only if the tool line isn't there.
     case "permission_request": {
       const { type: _, ...rest } = event;
-      return append(state, { kind: "permission", ...rest });
+      const item: ChatItem = { kind: "permission", ...rest };
+      const index = state.timeline.findIndex((tool) => tool.kind === "tool" && tool.id === event.toolUseId);
+      if (index === -1) return append(state, item);
+      const timeline = state.timeline.slice();
+      timeline[index] = item;
+      return { ...state, timeline };
     }
 
     case "permission_resolved": {

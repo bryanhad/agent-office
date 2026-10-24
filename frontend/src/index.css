@@ -62,6 +62,9 @@
   --radius-row: 8px;
   --radius-card: 12px;
   --radius-panel: 16px;
+
+  /* The only shadow: the soft amber ring around a pending permission card. */
+  --shadow-waiting-ring: 0 0 0 4px color-mix(in srgb, var(--color-waiting-body) 25%, transparent);
 }
 
 @layer base {
@@ -135,4 +138,15 @@
   30% {
     opacity: 1;
   }
+}
+
+/* A scroll box whose scrollbar stays visible (macOS hides overlay scrollbars until you
+   scroll), so a long command on a permission card visibly has more below. */
+.scroll-visible::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scroll-visible::-webkit-scrollbar-thumb {
+  background: var(--color-text-faint);
+  border-radius: 4px;
 }

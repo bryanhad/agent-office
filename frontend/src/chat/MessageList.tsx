@@ -1,24 +1,36 @@
-// The chat timeline, then the queued messages (brief §6). Tool lines and permission
-// cards are one-line placeholders until step 12.
+// The chat timeline, then the queued messages (brief §6). While a permission card is
+// pending, everything else in the timeline steps back so the decision takes the stage;
+// queued messages and the input stay as they are.
 
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { CrossGlyph, StopGlyph } from "../glyphs.tsx";
-import { useStore, type ChatItem } from "../store.ts";
+import { hasPending, useStore, type ChatItem } from "../store.ts";
 import { send } from "../ws.ts";
 import { Markdown } from "./Markdown.tsx";
+import { PermissionCard } from "./PermissionCard.tsx";
 import { ThinkingIndicator } from "./ThinkingIndicator.tsx";
+import { ToolLine } from "./ToolLine.tsx";
 
 // How close to the bottom still counts as "at the bottom", for sub-pixel scroll positions
 // and a last line that's only partly in view.
 const BOTTOM_SLACK_PX = 32;
 
-const DECISION_LABEL = { approved: "Approved", denied: "Denied", timed_out: "Timed out", cancelled: "Cancelled" };
+const FADE = "transition-[opacity,color] duration-150 motion-reduce:transition-none";
+
+// How an item steps back while a card is pending: text goes faint, rows go translucent.
+function stepBack(item: ChatItem): string {
+  if (item.kind === "permission" && !item.decision) return "";
+  // A cancelled bubble sets its own muted color, hence the override on its children.
+  if (item.kind === "user") return "text-text-faint [&_*]:text-text-faint";
+  return item.kind === "assistant" ? "text-text-faint" : "opacity-60";
+}
 
 export function MessageList({ projectName }: { projectName: string }) {
   const timeline = useStore((state) => state.timeline);
   const queued = useStore((state) => state.queued);
   // The thinking indicator at the bottom appears and changes with the agent's state.
   const agents = useStore((state) => state.agents);
+  const pending = useStore((state) => hasPending(state.timeline));
   const list = useRef<HTMLDivElement>(null);
   // A ref, not state: it's read during layout, before the scroll handler would re-render.
   const atBottom = useRef(true);
@@ -60,10 +72,14 @@ export function MessageList({ projectName }: { projectName: string }) {
         {/* One flat keyed list, so a delivered message keeps its DOM node as it moves from
             the queued tail into the timeline, and its dimming fades out instead of jumping. */}
         {timeline.map((item) => (
-          <Item key={`${item.kind}-${item.id}`} item={item} />
+          <div key={`${item.kind}-${item.id}`} className={`${FADE} ${pending ? stepBack(item) : ""}`}>
+            <Item item={item} />
+          </div>
         ))}
         {queued.map((message) => (
-          <UserMessage key={`user-${message.id}`} id={message.id} text={message.text} status="queued" />
+          <div key={`user-${message.id}`} className={FADE}>
+            <UserMessage id={message.id} text={message.text} status="queued" />
+          </div>
         ))}
         <ThinkingIndicator />
       </div>
@@ -87,19 +103,9 @@ function Item({ item }: { item: ChatItem }) {
     case "assistant":
       return <Markdown text={item.text} />;
     case "tool":
-      return (
-        <Row>
-          <span>{item.tool}</span>
-          <Target value={item.label} />
-        </Row>
-      );
+      return <ToolLine tool={item.tool} target={item.label} outsideProject={item.outsideProject} />;
     case "permission":
-      return (
-        <Row outcome={item.decision ? DECISION_LABEL[item.decision] : "Pending"}>
-          <span>Permission · {item.tool}</span>
-          <Target value={item.detail} />
-        </Row>
-      );
+      return <PermissionCard item={item} />;
     case "error":
       return (
         <p className="flex items-start gap-2 rounded-row bg-error-soft px-3 py-2 text-label text-error-strong">
@@ -145,24 +151,5 @@ function UserMessage({ id, text, status }: { id: string; text: string; status: "
       )}
       {status === "cancelled" && <p className="text-meta text-text-muted">Cancelled</p>}
     </div>
-  );
-}
-
-// A one-line sunken row with an optional outcome at the right edge. Step 12 replaces
-// the tool and permission placeholders that use it.
-function Row({ children, outcome }: { children: ReactNode; outcome?: string }) {
-  return (
-    <div className="flex min-w-0 items-center gap-2 rounded-row bg-surface-sunken px-3 py-2 text-label">
-      {children}
-      {outcome && <span className="ml-auto shrink-0 text-meta text-text-muted">{outcome}</span>}
-    </div>
-  );
-}
-
-function Target({ value }: { value: string }) {
-  return (
-    <span className="min-w-0 truncate font-mono text-text-muted" title={value}>
-      {value}
-    </span>
   );
 }

@@ -7,7 +7,7 @@
 // would make the reducer impure. A reload mid-turn restarts the count from 0.
 
 import { useEffect, useState } from "react";
-import { isBusy, useStore, type ChatItem } from "../store.ts";
+import { hasPending, isBusy, useStore, type ChatItem } from "../store.ts";
 
 const WORDS = [
   "Pondering",
@@ -48,7 +48,9 @@ export function ThinkingIndicator() {
   const manager = useStore((state) => state.agents.find((agent) => agent.id === "manager"));
   const turnKey = useStore((state) => lastDeliveredId(state.timeline));
   const busy = manager !== undefined && isBusy([manager]);
-  const shown = manager?.state === "thinking" || manager?.state === "working";
+  const pending = useStore((state) => hasPending(state.timeline));
+  // Checked on the cards too, not only the state, so it never shows next to a card.
+  const shown = !pending && (manager?.state === "thinking" || manager?.state === "working");
   const [turn, setTurn] = useState<Turn | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
