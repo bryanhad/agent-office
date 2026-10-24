@@ -25,12 +25,12 @@ Done-when key (from 001-mvp.md):
   - Verify: `cd backend && npx tsx spike/sdk-spike.ts <folder>`; run once answering y, once answering n, and once with `CLAUDE_CODE_OAUTH_TOKEN=garbage` to check the SDK doesn't fall back to the Claude Code login.
   - Moves forward: de-risks D1, D3, D4, D5, D8.
 
-- [ ] **2. Record spike findings and decisions (docs only)**
-  - Files: `docs/vision.md` (§5 stripped variables; §7 permission wording, Origin check; blob table error exit is added in step 7), `docs/decisions/002-oauth-token-required.md` (extra variables, subscription-use note), new `docs/decisions/009-streaming-input-session.md`, new `docs/decisions/010-one-project-per-instance.md` (multiple projects = multiple instances; Docker Compose out of scope for now), `docs/plans/001-mvp.md` (D10–D12, `PROJECT_DIR`, configurable ports), delete `PROJECT_BRIEF.md`.
+- [x] **2. Record spike findings and decisions (docs only)**
+  - Files: `docs/vision.md` (§5 stripped variables, subscription proof, `MODEL`; §6 `PROJECT_DIR`, one project per instance; §7 permission wording, Origin check, `allowedTools` ban, `~/.claude/projects/` note; roadmap: usage bar, model dropdown, per-agent models; blob table error exit is added in step 7), `docs/decisions/002-oauth-token-required.md` (extra variables, proof, subscription-use note), new `docs/decisions/009-streaming-input-session.md`, new `docs/decisions/010-one-project-per-instance.md` (multiple projects = multiple instances; Docker Compose out of scope for now), new `docs/notes/sdk-events-sample.md` (trimmed spike logs and findings), `docs/plans/001-mvp.md` (D10–D12, `PROJECT_DIR`, configurable ports, `MODEL`), `CLAUDE.md` (`allowedTools` rule, docs map), delete `PROJECT_BRIEF.md`.
   - Verify: read the diff.
 
 - [ ] **3. Root workspace and backend startup**
-  - Files: root `package.json` (npm workspaces `backend`, `frontend`, `shared`), `tsconfig.base.json`, `backend/src/env.ts` (load `.env`, require the token, strip the variables, read `PORT` default 3001, `WEB_PORT` default 5173, `PROJECT_DIR`), `backend/src/index.ts` (Express on `127.0.0.1:${PORT}`, `GET /api/health`), `backend/.env.example` (`PORT`, `WEB_PORT`, `PROJECT_DIR` commented out). Real environment variables override `.env`.
+  - Files: root `package.json` (npm workspaces `backend`, `frontend`, `shared`), `tsconfig.base.json`, `backend/src/env.ts` (load `.env`, require the token, strip the variables, read `PORT` default 3001, `WEB_PORT` default 5173, `PROJECT_DIR`, `MODEL`), `backend/src/index.ts` (Express on `127.0.0.1:${PORT}`, `GET /api/health`), `backend/.env.example` (`PORT`, `WEB_PORT`, `PROJECT_DIR`, `MODEL` commented out). Real environment variables override `.env`.
   - Verify: without the token `npm run dev -w backend` exits with a clear message; with it `curl 127.0.0.1:3001/api/health` answers and `lsof -iTCP:3001 -sTCP:LISTEN` shows `127.0.0.1` only; `ANTHROPIC_API_KEY=x npm run dev -w backend` warns without the value; `PORT=3002 npm run dev -w backend` listens on 3002.
   - Moves forward: D1, D12.
 
@@ -50,8 +50,8 @@ Done-when key (from 001-mvp.md):
   - Moves forward: D9 groundwork.
 
 - [ ] **7. Agent session (no permissions yet)**
-  - Files: `backend/src/session.ts` (one streaming-input `query()` per opened project; feeds user messages; maps SDK messages to shared events; keeps the chat log in memory for the snapshot; derives agent state). Opening another project while one is busy denies any pending request and aborts the running query cleanly before starting the new one. Error exit: the next user message moves the agent from `error` to `thinking`. `docs/vision.md` blob table gets the error-exit rule. Until step 8 the permission callback denies everything.
-  - Verify (wscat): "what does this project do?" streams `assistant_text` with thinking → idle; a follow-up remembers; switch project mid-turn and see the old query stop; with a garbage token see `error`, then a new message moves to thinking.
+  - Files: `backend/src/session.ts` (one streaming-input `query()` per opened project with the options from decision 009, including the `tools` allowlist and `MODEL`; logs the model the init message reports; feeds user messages; maps SDK messages to shared events per `docs/notes/sdk-events-sample.md`; keeps the chat log in memory for the snapshot; derives agent state). Opening another project while one is busy denies any pending request and aborts the running query cleanly before starting the new one. Both error paths from decision 009 are handled: a turn error (`is_error: true`) and a thrown query (caught; the next message resumes the session). Error exit: the next user message moves the agent from `error` to `thinking`. `docs/vision.md` blob table gets the error-exit rule. Until step 8 the permission callback denies everything.
+  - Verify (wscat): "what does this project do?" streams `assistant_text` with thinking → idle; the backend log shows the model; a follow-up remembers; switch project mid-turn and see the old query stop; with a garbage token see `error` and `agent_state: error`, the backend doesn't crash, and a new message moves to thinking.
   - Moves forward: D3, D6 (error), D8 (backend).
 
 - [ ] **8. Permissions**
@@ -85,6 +85,6 @@ Done-when key (from 001-mvp.md):
   - Moves forward: D6, D7.
 
 - [ ] **14. Commands, README, done-when**
-  - Files: `CLAUDE.md` (Commands), `README.md`, `docs/plans/001-mvp.md` (tick done-when items after a full manual run, including two instances side by side).
+  - Files: `CLAUDE.md` (Commands, including `backend/spike/sdk-spike.ts` as the manual SDK sanity check), `README.md`, `docs/plans/001-mvp.md` (tick done-when items after a full manual run, including two instances side by side).
   - Verify: follow the README from a fresh clone.
   - Moves forward: D12 and the final check of all items.

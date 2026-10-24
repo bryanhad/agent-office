@@ -25,6 +25,7 @@ To be added once the project is scaffolded.
 - The office renderer only reads store state; event-to-state logic lives outside it.
 - The OAuth token never reaches the frontend or logs.
 - The backend binds to `127.0.0.1` only.
+- Never use the `allowedTools` option; it auto-approves tools and bypasses the approve/deny cards. Restrict tools with `tools`.
 - App agent roles live in `backend/src/roles/`, not `.claude/agents/`.
 - Don't build anything from `docs/design/future/` unless a plan file says so.
 - Prefer small, readable code.
@@ -33,6 +34,8 @@ To be added once the project is scaffolded.
 ## Docs map
 
 - `docs/plans/001-mvp.md`: read at the start of every task; it defines what's in scope.
+- `docs/plans/001-mvp-steps.md`: the build order, one commit per step; tick a step when it's done and committed.
+- `docs/notes/sdk-events-sample.md`: read before changing `shared/events.ts` or the event → state mapping.
 - `docs/vision.md`: read when you need details on architecture, auth, project selection, security, design, agents or the roadmap.
 - `docs/design/layout.png`: read before any UI work (start screen, office, chat). Images are the source of truth for the look; when a task touches a design area, open the referenced image.
 - `docs/design/future/`: 3D references. Ignore unless a plan file says otherwise.

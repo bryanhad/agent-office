@@ -72,8 +72,11 @@ The backend **must** run on my Claude subscription through an OAuth token. See [
 
 - `CLAUDE_CODE_OAUTH_TOKEN` lives in `backend/.env` (generated with `claude setup-token`). `.env` is gitignored.
 - On startup, if `CLAUDE_CODE_OAUTH_TOKEN` is missing, the backend exits with a clear error message. No fallback to other credentials.
-- On startup, **remove `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` from the environment** before any SDK call. They take precedence over the OAuth token and would silently switch to pay-per-token billing. Log a warning if they were present.
+- On startup, **remove `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, `CLAUDE_CODE_USE_BEDROCK`, `CLAUDE_CODE_USE_VERTEX` and `CLAUDE_CODE_USE_FOUNDRY` from the environment** before any SDK call. They take precedence over the OAuth token and would silently switch billing away from the subscription. Log a warning naming each one that was present, never its value.
+- `apiKeyHelper` (a settings entry) also outranks the token. It can't load because the session doesn't read user or local settings (see [decision 009](decisions/009-streaming-input-session.md)).
 - The token never goes to the frontend: no `VITE_` variable, no API response, no logs.
+- How we know it's the subscription: a garbage token fails with `401 Invalid bearer token` (no fallback to the Mac's Claude Code login), and a real run emits `rate_limit_event` with `five_hour` / `seven_day` utilization, which are subscription limits. The init message's `apiKeySource` reports `none` for the OAuth token, so it is **not** proof of anything. See [sdk-events-sample.md](notes/sdk-events-sample.md).
+- Optional `MODEL` in `backend/.env` sets the main model (alias or full ID). Unset means the account default; the backend logs the model the init message reports. Claude Code also uses a small background model (seen as `claude-haiku-5-5` in `modelUsage`) that `MODEL` doesn't control.
 
 ## 6. Project directory selection
 
@@ -87,11 +90,20 @@ The backend **must** run on my Claude subscription through an OAuth token. See [
 - Paths are built with Node's `path` module, never by concatenating `/`.
 - The project name shown on the wall comes from `package.json` `name`, falling back to the folder name.
 - Optional CLI start: `agent-office [dir]`, defaulting to `process.cwd()`.
+- Optional `PROJECT_DIR` in `backend/.env` (config, not a secret), validated the same way:
+  - not set: the start screen asks for a folder
+  - set and valid: opened on startup, start screen skipped, and the instance is pinned (no switching in the UI)
+  - set but invalid: the backend still starts, and the start screen shows "The project folder set in the backend config isn't valid: <reason>" with a working path input
+- One project per backend instance. Several projects at once means several instances, each with its own `PORT` (backend, default 3001) and `WEB_PORT` (frontend, default 5173). See [decision 010](decisions/010-one-project-per-instance.md).
 
 ## 7. Security
 
 - The backend can run shell commands, so it binds to **`127.0.0.1` only**.
-- Every file edit and command goes through the permission flow (approve/deny in chat). No auto-approve in the MVP.
+- Binding to `127.0.0.1` doesn't stop a web page open in my browser from connecting to it (WebSockets have no CORS). The WebSocket upgrade and `POST /api/project` are refused unless `Origin` is `http://127.0.0.1:${WEB_PORT}` or `http://localhost:${WEB_PORT}`.
+- Every file edit and every command that isn't read-only asks for approval in chat. File reads inside the project and read-only commands (`ls`, `git status`) run without asking; that's how the SDK's `default` permission mode works. No auto-approve in the MVP.
+- The session loads only the project's own settings (`settingSources: ["project"]`), so allow rules from `~/.claude/settings.json` and `.claude/settings.local.json` don't apply. Allow rules committed in the project's `.claude/settings.json` are honored; the backend logs them when the project opens.
+- Never use the SDK's `allowedTools` option: it auto-approves tools and bypasses the approve/deny cards. Tools are restricted with `tools` instead.
+- Files the SDK writes outside the repo: session transcripts and auto-memory go under `~/.claude/projects/<encoded-cwd>/`, regardless of `settingSources`.
 
 ### Pending permission requests
 
@@ -138,7 +150,7 @@ Colors and animations can change; the states and "waiting is the most noticeable
 ## 9. Agents and roles
 
 - **Manager** (default receiver): plans and delegates.
-- Planned roles: Frontend engineer, Backend engineer, QA. Defined as subagents (name, description, prompt, allowed tools).
+- Planned roles: Frontend engineer, Backend engineer, QA. Defined as subagents (name, description, prompt, allowed tools, model).
 - App agent role definitions live in `backend/src/roles/`, **not** in `.claude/agents/` (that folder is for agents that help build this repo). See [decision 006](decisions/006-app-roles-not-in-dot-claude.md).
 - Routing decision: `@agent` messages go **through the manager**, which delegates. Not separate sessions per agent. The UI still animates the specific agent that is active. See [decision 001](decisions/001-route-via-manager.md).
 
@@ -158,11 +170,16 @@ agent-office/
 │   │   ├── layout.png
 │   │   └── future/        3D references, not MVP
 │   ├── plans/
-│   │   └── 001-mvp.md
+│   │   ├── 001-mvp.md
+│   │   └── 001-mvp-steps.md
+│   ├── notes/
+│   │   └── sdk-events-sample.md
 │   └── decisions/
 ├── backend/
 │   ├── .env               not committed
 │   ├── .env.example
+│   ├── spike/
+│   │   └── sdk-spike.ts   manual SDK sanity check
 │   └── src/
 │       ├── index.ts
 │       ├── project.ts
@@ -184,9 +201,14 @@ The `src` file names are a suggested starting split, not a rule.
 
 ## 11. After the MVP (rough order)
 
-1. Multiple agents as subagents, one blob each, `@` mentions with autocomplete.
-2. Dev server control and the floating preview iframe.
-3. 3D office with React Three Fiber: primitives first (box room, desks, capsule agents), camera with orbit, pan and zoom.
-4. Better project selection: folder browser, recent projects, and the `agent-office [dir]` CLI start (see [Project directory selection](#6-project-directory-selection)).
-5. Nicer 3D models and animations, session history, sounds, polish.
-6. Diff preview in permission cards.
+1. Chat panel extras:
+   - Subscription usage bar from `rate_limit_event` (`five_hour` / `seven_day` utilization).
+   - Model dropdown, filled from `query.supportedModels()` and switched with `query.setModel()` (possible because the session uses streaming input). Like `MODEL`, it only controls the main model, not Claude Code's small background model.
+2. Multiple agents as subagents, one blob each, `@` mentions with autocomplete.
+   - Per-agent models: each role in `backend/src/roles/` gets a `model` field (alias, full ID, or `'inherit'` = the main model).
+   - After that, a settings UI to edit the per-agent models.
+3. Dev server control and the floating preview iframe.
+4. 3D office with React Three Fiber: primitives first (box room, desks, capsule agents), camera with orbit, pan and zoom.
+5. Better project selection: folder browser, recent projects, and the `agent-office [dir]` CLI start (see [Project directory selection](#6-project-directory-selection)).
+6. Nicer 3D models and animations, session history, sounds, polish.
+7. Diff preview in permission cards.
