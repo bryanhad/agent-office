@@ -44,7 +44,7 @@ Done-when key (from 001-mvp.md):
   - Verify: curl `POST` with a real folder, `~/nope`, a file, and a bad `Origin`; start with a valid `PROJECT_DIR` and check `GET` reports pinned and `POST` is refused; start with an invalid one and check `GET` reports the reason and `POST` still works; open a project with an allow rule and see the warning.
   - Moves forward: D2, D10, D11 (backend).
 
-- [ ] **6. WebSocket and snapshot**
+- [x] **6. WebSocket and snapshot**
   - Files: `backend/src/ws.ts` (`ws` on the same server at `/ws`, Origin check, broadcast, snapshot on connect with project status, agents and the chat so far, whose unresolved `permission_request` is the pending one). Every incoming message is validated at runtime with a zod schema in the backend (`ClientEvent` is only a type); anything that isn't valid JSON or doesn't match is dropped with a log line. This socket can approve shell commands.
   - Verify: `npx wscat -c ws://127.0.0.1:3001/ws -o http://127.0.0.1:5173` gets a snapshot; `-o http://evil.example` is refused; sending `hello`, `{}` or `{"type":"permission_response","id":1}` is dropped and logged, and the connection stays usable.
   - Moves forward: D9 groundwork.

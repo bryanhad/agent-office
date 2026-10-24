@@ -4,6 +4,7 @@ import express from "express";
 import type { ApiError, OpenProjectRequest, ProjectResponse } from "@agent-office/shared";
 import { requireAllowedOrigin } from "./origin.ts";
 import { openFromConfig, openFromRequest, projectStatus } from "./project.ts";
+import { attachWebSocket, broadcastSnapshot } from "./ws.ts";
 
 const HOST = "127.0.0.1";
 
@@ -37,6 +38,8 @@ app.post("/api/project", requireAllowedOrigin, express.json({ limit: "10kb" }), 
   }
   const body: ProjectResponse = result.status;
   res.json(body);
+  // Every open window switches to the new project.
+  broadcastSnapshot();
 });
 
 // Answer errors as JSON instead of Express's HTML page. Malformed JSON bodies land here.
@@ -48,7 +51,7 @@ app.use(((error, _req, res, _next) => {
 }) satisfies express.ErrorRequestHandler);
 
 // Express 5 calls this callback on listen errors too, so check for one first.
-app.listen(config.port, HOST, (error?: NodeJS.ErrnoException) => {
+const server = app.listen(config.port, HOST, (error?: NodeJS.ErrnoException) => {
   if (error) {
     if (error.code === "EADDRINUSE") {
       console.error(`error: port ${config.port} is already in use. Set PORT to a free port.`);
@@ -62,3 +65,5 @@ app.listen(config.port, HOST, (error?: NodeJS.ErrnoException) => {
   console.log(`  model: ${config.model ?? "account default"}`);
   console.log(`  project dir: ${config.projectDir ?? "not set"}`);
 });
+
+attachWebSocket(server);
