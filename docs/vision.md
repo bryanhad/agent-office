@@ -83,9 +83,10 @@ The backend **must** run on my Claude subscription through an OAuth token. See [
 - On startup the UI asks for a project directory, prefilled with `~/`, and shows recent projects.
 - The frontend sends the path **string** to the backend. The backend:
   1. expands `~` with `os.homedir()`
-  2. resolves with `path.resolve()`
-  3. checks it exists and is a directory
-  4. uses the absolute path as the SDK session's `cwd`
+  2. refuses anything else that isn't absolute (400 "Use a full path, or start with ~."); relative paths are never resolved against the backend's folder or home
+  3. normalizes with `path.resolve()`
+  4. checks it exists and is a directory
+  5. uses the absolute path as the SDK session's `cwd`
 - Only absolute paths are stored. Recent projects go in `~/.agent-office/config.json`, never in the repo.
 - Paths are built with Node's `path` module, never by concatenating `/`.
 - The project name shown on the wall comes from `package.json` `name`, falling back to the folder name.

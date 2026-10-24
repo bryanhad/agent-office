@@ -5,11 +5,12 @@ import os from "node:os";
 import path from "node:path";
 import type { Project, ProjectStatus } from "@agent-office/shared";
 
-type Problem = "empty" | "not_found" | "not_a_folder" | "unreadable";
+type Problem = "empty" | "relative" | "not_found" | "not_a_folder" | "unreadable";
 
 // Shown under the start screen's path input (wording from docs/design/layout.png).
 const MESSAGES: Record<Problem, string> = {
   empty: "Enter a folder path.",
+  relative: "Use a full path, or start with ~.",
   not_found: "That folder doesn't exist. Check the path and try again.",
   not_a_folder: "That path is a file, not a folder. Check the path and try again.",
   unreadable: "That folder can't be opened. Check its permissions and try again.",
@@ -18,6 +19,7 @@ const MESSAGES: Record<Problem, string> = {
 // Shown after "The project folder set in the backend config isn't valid: ".
 const REASONS: Record<Problem, string> = {
   empty: "the path is empty",
+  relative: "it's a relative path; use a full path or start with ~",
   not_found: "the folder doesn't exist",
   not_a_folder: "it's a file, not a folder",
   unreadable: "the folder can't be opened",
@@ -38,11 +40,15 @@ let current: OpenProject | null = null;
 let pinned = false;
 let configError: string | null = null;
 
-// Expand `~`, resolve to an absolute path, check it's a readable folder.
+// Expand `~`, require an absolute path, normalize it, check it's a readable folder.
+// Relative paths are refused rather than resolved: against the backend's working
+// directory they'd point somewhere surprising.
 async function resolve(input: string): Promise<Resolved> {
   const trimmed = input.trim();
-  const dir = path.resolve(trimmed.replace(/^~(?=$|[\\/])/, os.homedir()));
-  if (!trimmed) return { ok: false, problem: "empty", dir };
+  const expanded = trimmed.replace(/^~(?=$|[\\/])/, os.homedir());
+  if (!trimmed) return { ok: false, problem: "empty", dir: trimmed };
+  if (!path.isAbsolute(expanded)) return { ok: false, problem: "relative", dir: trimmed };
+  const dir = path.resolve(expanded);
 
   try {
     if (!(await stat(dir)).isDirectory()) return { ok: false, problem: "not_a_folder", dir };
